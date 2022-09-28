@@ -25,6 +25,7 @@
             "providers": [
                 "Caydeesoft\\Payments\\PaymentsServiceProvider"
             ],
+            
             "aliases": {
                 "Payments": "Caydeesoft\\Payments\\Facade\\Payments"
             }

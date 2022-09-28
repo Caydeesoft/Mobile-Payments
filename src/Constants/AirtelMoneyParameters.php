@@ -4,7 +4,7 @@
 namespace Caydeesoft\Payments\Constants;
 
 
-class AirtelMoneyParameters im
+class AirtelMoneyParameters
     {
         public const country            =   'KE';
         public const currency           =   'KES';

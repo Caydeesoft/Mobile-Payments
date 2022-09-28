@@ -1,6 +1,6 @@
 <?php
 
-namespace Caydeesoft\Payments;
+namespace Caydeesoft\Payments\Exceptions;
 
 
 use Symfony\Component\HttpKernel\Exception\HttpException;

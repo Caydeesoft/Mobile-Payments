@@ -6,7 +6,7 @@
     "authors": [
         {
             "name": "Dennis Kiptugen",
-            "email": "caydee2010@aol.com"
+            "email": "dennis.kiptoo@caydeesoft.com"
         }
     ],
     "require": {
@@ -18,10 +18,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Caydeesoft\\Payments\\PaymentsServiceProvider"
+                "Caydeesoft\\Payments\\PaymentsServiceProvider::class"
             ],
             "aliases": {
-                "Payments": "Caydeesoft\\Payments\\Libs\\Payments"
+                "Payments": "Caydeesoft\\Payments\\Facade\\Payments::class"
             }
         }
     }

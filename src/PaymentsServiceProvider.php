@@ -2,8 +2,8 @@
 
 namespace Caydeesoft\Payments;
 
-use \Illuminate\Support\Facades\App;
-use \Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\ServiceProvider;
 
 class PaymentsServiceProvider extends ServiceProvider
 {

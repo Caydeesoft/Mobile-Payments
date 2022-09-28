@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Caydeesoft\Payments\Constants;;
+namespace Caydeesoft\Payments\Constants;
 
 
 class MpesaParameters

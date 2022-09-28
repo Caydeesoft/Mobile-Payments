@@ -1,9 +1,9 @@
 <?php
 namespace Caydeesoft\Payments\Traits;
 
-use Caydeesoft\Payments\PaymentException;
+use Caydeesoft\Payments\Exceptions\PaymentException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+
 
 trait Helper
     {
@@ -29,7 +29,7 @@ trait Helper
                 {
                     return $data->object();
                 }
-            throwException((new \Caydeesoft\Payments\PaymentException)->notification());
+            throwException((new PaymentException())->notification());
         }
         public function msisdnFormatter(String $msisdn,$prefix=254,int $size=9) :String
             {

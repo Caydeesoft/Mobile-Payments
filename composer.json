@@ -1,0 +1,28 @@
+{
+    "name": "caydeesoft/payments",
+    "description": " integration for mobile",
+    "keywords": ["mobile-payments", "mpesa", "airtel money", "tkash", "mtn"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dennis Kiptugen",
+            "email": "caydee2010@aol.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2.5",
+        "illuminate/routing": "^7|^8|^9",
+        "illuminate/session": "^7|^8|^9",
+        "illuminate/support": "^7|^8|^9"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Caydeesoft\\Payments\\PaymentsServiceProvider"
+            ],
+            "aliases": {
+                "Payments": "Caydeesoft\\Payments\\Facade"
+            }
+        }
+    }
+}

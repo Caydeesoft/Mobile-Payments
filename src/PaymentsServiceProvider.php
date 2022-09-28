@@ -16,7 +16,7 @@ class PaymentsServiceProvider extends ServiceProvider
         {
             App::bind('payment', \Caydeesoft\Payments\Libs\Payments::class);
             $this->mergeConfigFrom(
-                __DIR__ . '/src/config/payments.php', 'payments'
+                __DIR__ . '/config/payments.php', 'payments'
             );
         }
 
@@ -28,7 +28,7 @@ class PaymentsServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__ . '/src/config/payments.php' => config_path('payments.php'),
+            __DIR__ . '/config/payments.php' => config_path('payments.php'),
         ]);
 
     }

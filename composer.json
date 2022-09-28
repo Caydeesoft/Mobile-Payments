@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.0",
         "illuminate/routing": "^7|^8|^9",
         "illuminate/session": "^7|^8|^9",
         "illuminate/support": "^7|^8|^9"
@@ -25,7 +25,7 @@
             "providers": [
                 "Caydeesoft\\Payments\\PaymentsServiceProvider"
             ],
-            
+
             "aliases": {
                 "Payments": "Caydeesoft\\Payments\\Facade\\Payments"
             }

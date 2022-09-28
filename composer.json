@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=7.2.5",
+        "php": ">=8.1",
         "illuminate/routing": "^7|^8|^9",
         "illuminate/session": "^7|^8|^9",
         "illuminate/support": "^7|^8|^9"
@@ -18,10 +18,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Caydeesoft\\Payments\\PaymentsServiceProvider::class"
+                "Caydeesoft\\Payments\\PaymentsServiceProvider"
             ],
             "aliases": {
-                "Payments": "Caydeesoft\\Payments\\Libs\\Payments::class"
+                "Payments": "Caydeesoft\\Payments\\Libs\\Payments"
             }
         }
     }

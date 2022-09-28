@@ -24,5 +24,10 @@
                 "Payments": "Caydeesoft\\Payments\\Facade\\Payments::class"
             }
         }
+    },
+    "autoload": {
+        "psr-4": {
+           "Caydeesoft\\Payments\\": "./src/"
+        }
     }
 }

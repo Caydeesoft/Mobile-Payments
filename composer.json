@@ -27,7 +27,7 @@
     },
     "autoload": {
         "psr-4": {
-           "Caydeesoft\\Payments\\": "./src/"
+           "Caydeesoft\\Payments\\": "src/"
         }
     }
 }

@@ -15,6 +15,11 @@
         "illuminate/session": "^7|^8|^9",
         "illuminate/support": "^7|^8|^9"
     },
+    "autoload": {
+        "psr-4": {
+            "Caydeesoft\\Payments\\": "src/"
+        }
+    },
     "extra": {
         "laravel": {
             "providers": [
@@ -24,10 +29,6 @@
                 "Payments": "Caydeesoft\\Payments\\Facade\\Payments"
             }
         }
-    },
-    "autoload": {
-        "psr-4": {
-           "Caydeesoft\\Payments\\": "src/"
-        }
     }
+
 }

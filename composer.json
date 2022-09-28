@@ -18,10 +18,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "\\Caydeesoft\\Payments\\PaymentsServiceProvider"
+                "\\Caydeesoft\\Payments\\PaymentsServiceProvider::class"
             ],
             "aliases": {
-                "Payments": "\\Caydeesoft\\Payments\\Libs\\Payments"
+                "Payments": "\\Caydeesoft\\Payments\\Libs\\Payments::class"
             }
         }
     }

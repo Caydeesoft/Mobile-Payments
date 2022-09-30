@@ -4,7 +4,7 @@ namespace Caydeesoft\Payments\Callbacks;
 
 use Illuminate\Http\Request;
 
-class Airtel implements CallbackInterface
+class Tkash implements CallbackInterface
     {
 
         public function processB2BRequestCallback(Request $request)

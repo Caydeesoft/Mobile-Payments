@@ -5,7 +5,7 @@ namespace Caydeesoft\Payments\Libs;
 use Caydeesoft\Payments\Constants\EazzyPayParameters;
 use Caydeesoft\Payments\Traits\Helper;
 
-class EazzyPay implements Paychannels
+class EazzyPay extends EazzyPayParameters implements Paychannels
 {
     use Helper;
     protected  $link;

@@ -15,6 +15,16 @@ class MpesaParameters
         public const transtat_link          =   '/mpesa/transactionstatus/v1/query';
         public const b2b_link               =   '/mpesa/b2b/v1/paymentrequest';
         public const b2c_link               =   '/mpesa/b2c/v1/paymentrequest';
+        public const billMOptinLink         =   '/v1/billmanager-invoice/optin';
+        public const billMChangeOptinLink   =   '/v1/billmanager-invoice/change-optin-details';
+        public const billMSingleInvoice     =   '/v1/billmanager-invoice/single-invoicing';
+        public const billMBulkInvoice       =   '/v1/billmanager-invoice/bulk-invoicing';
+        public const billMCancelSingleIn    =   '/v1/billmanager-invoice/cancel-single-invoice';
+        public const qrcode                 =   '/mpesa/qrcode/v1/generate';
+        public static function billManagerOptinURL()
+            {
+                return url("api/billmanageroptincallback");
+            }
         public static function reversalURL()
             {
                 return url("api/reversalcallback");

@@ -3,10 +3,11 @@ namespace Caydeesoft\Payments\Libs;
 
 use App\Constants\MpesaParameters;
 use Caydeesoft\Payments\Traits\Helper;
+
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class Mpesa implements Paychannels
+class Mpesa extends MpesaParameters implements Paychannels
 	{
     use Helper;
     public   $link, $cert,$timestamp;
@@ -32,7 +33,7 @@ class Mpesa implements Paychannels
             $credentials    =   base64_encode($request->consumerkey.':'.$request->consumersecret);
             $data           =   Http::withHeaders(['Content-Type'=>'application/json','Authorization'=>'Basic '.$credentials])
                 ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-                ->get($this->link.MpesaParameters::token_link);
+                ->get($this->link.self::token_link);
 
             if($data->successful())
             {
@@ -106,14 +107,14 @@ class Mpesa implements Paychannels
                 'PartyA'            =>  $request->msisdn ,
                 'PartyB'            =>  $shortcode ,
                 'PhoneNumber'       =>  $request->msisdn ,
-                'CallBackURL'       =>  MpesaParameters::stkrequestcallback() ,
+                'CallBackURL'       =>  self::stkrequestcallback() ,
                 'AccountReference'  =>  $request->ref ,
                 'TransactionDesc'   =>  $request->desc
             ];
             $token      =   $this->generate_token($request);
             if(property_exists($token,'access_token'))
             {
-                return $this->invoke_server($this->link.MpesaParameters::checkout_processlink,$data,$token->access_token);
+                return $this->invoke_server($this->link.self::checkout_processlink,$data,$token->access_token);
             }
 
         }
@@ -139,7 +140,7 @@ class Mpesa implements Paychannels
                 'Timestamp'         =>  $this->timestamp ,
                 'CheckoutRequestID' => $request->CheckoutRequestID
             ];
-            return $this->invoke_server($this->link.MpesaParameters::checkout_querylink,$data,$this->generate_token($request));
+            return $this->invoke_server($this->link.self::checkout_querylink,$data,$this->generate_token($request));
         }
         catch(HttpException $e)
         {
@@ -164,12 +165,12 @@ class Mpesa implements Paychannels
                 'Amount'                    =>  $request->amount ,
                 'ReceiverParty'             =>  $request->receiver ,
                 'RecieverIdentifierType'    =>  $this->getIdentifier($request->receiverType) ,
-                'ResultURL'                 =>  MpesaParameters::reversalURL() ,
-                'QueueTimeOutURL'           =>  MpesaParameters::reversalURL() ,
+                'ResultURL'                 =>  self::reversalURL() ,
+                'QueueTimeOutURL'           =>  self::reversalURL() ,
                 'Remarks'                   =>  $request->remarks ,
                 'Occasion'                  =>  $request->ocassion
             ];
-            return $this->invoke_server($this->link.MpesaParameters::reversal_link,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::reversal_link,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -192,11 +193,11 @@ class Mpesa implements Paychannels
                 'PartyA'                =>  $request->shortcode ,
                 'IdentifierType'        =>  $this->getIdentifier($request->type) ,
                 'Remarks'               =>  $request->remark ,
-                'QueueTimeOutURL'       =>  MpesaParameters::accountbalcallback() ,
-                'ResultURL'             =>  MpesaParameters::accountbalcallback()
+                'QueueTimeOutURL'       =>  self::accountbalcallback() ,
+                'ResultURL'             =>  self::accountbalcallback()
             ];
 
-            return $this->invoke_server($this->link.MpesaParameters::balance_link,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::balance_link,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -213,13 +214,13 @@ class Mpesa implements Paychannels
         try
         {
             $data = [
-                'ValidationURL'     =>  MpesaParameters::c2bvalidationcallback(),
-                'ConfirmationURL'   =>  MpesaParameters::c2bconfirmationcallback(),
+                'ValidationURL'     =>  self::c2bvalidationcallback(),
+                'ConfirmationURL'   =>  self::c2bconfirmationcallback(),
                 'ResponseType '     =>  'Canceled',
                 'ShortCode'         =>  $request->shortcode
             ];
 
-            return $this->invoke_server($this->link.MpesaParameters::c2b_regiterUrl,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::c2b_regiterUrl,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -246,10 +247,10 @@ class Mpesa implements Paychannels
                 'PartyB'                    =>  $request->to ,
                 'AccountReference'          =>  $request->accountref ,
                 'Remarks'                   =>  $request->remarks,
-                'QueueTimeOutURL'           =>  MpesaParameters::b2bcallback() ,
-                'ResultURL'                 => MpesaParameters::b2bcallback()
+                'QueueTimeOutURL'           =>  self::b2bcallback() ,
+                'ResultURL'                 => self::b2bcallback()
             ];
-            return $this->invoke_server($this->link.MpesaParameters::b2b_link,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::b2b_link,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -274,11 +275,11 @@ class Mpesa implements Paychannels
                 'PartyA'                =>  $request->shortcode ,
                 'PartyB'                =>  $request->msisdn ,
                 'Remarks'               =>  $request->remarks ,
-                'QueueTimeOutURL'       =>  MpesaParameters::b2ccallback() ,
-                'ResultURL'             =>  MpesaParameters::b2ccallback() ,
+                'QueueTimeOutURL'       =>  self::b2ccallback() ,
+                'ResultURL'             =>  self::b2ccallback() ,
                 'Occasion'              =>  $request->ocassion
             ];
-            return $this->invoke_server($this->link.MpesaParameters::b2c_link,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::b2c_link,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -302,15 +303,15 @@ class Mpesa implements Paychannels
                 'TransactionID'             =>  $request->transID ,
                 'PartyA'                    =>  $request->msisdn,
                 'IdentifierType'            =>  $this->getIdentifier($request->identifier) ,
-                'ResultURL'                 =>  MpesaParameters::transtatURL() ,
-                'QueueTimeOutURL'           =>  MpesaParameters::transtatURL() ,
+                'ResultURL'                 =>  self::transtatURL() ,
+                'QueueTimeOutURL'           =>  self::transtatURL() ,
                 'Remarks'                   =>  $request->remarks ,
                 'Occasion'                  =>  $request->ocassion ,
                 'OriginalConversationID'    =>  $request->conversionID
             ];
 
 
-            return $this->invoke_server($this->link.MpesaParameters::transtat_link,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::transtat_link,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
@@ -339,12 +340,68 @@ class Mpesa implements Paychannels
             ];
 
 
-            return $this->invoke_server($this->link.MpesaParameters::qrcode,$data,$this->generate_token($request)->access_token);
+            return $this->invoke_server($this->link.self::qrcode,$data,$this->generate_token($request)->access_token);
         }
         catch(HttpException $e)
         {
             Log::error($e->getMessage());
         }
     }
+    public function billManagerOptin($request , $state = 0)
+        {
+            try
+            {
+                $data = [
+                    "shortcode"=>$request->shortcode,
+                    "logo"=> $request->logo,
+                    "email"=> $request->email,
+                    "officialContact"=> $request->msisdn,
+                    "sendReminders"=> 1,
+                    "callbackUrl"=> self::billManagerOptinURL()
+                ];
+                $link = ($state == 0)?self::billMOptinLink:self::billMChangeOptinLink;
 
+                return $this->invoke_server($this->link.$link,$data,$this->generate_token($request)->access_token);
+            }
+            catch(HttpException $e)
+            {
+                Log::error($e->getMessage());
+            }
+        }
+    public function billManagerSingleInvoice($request)
+        {
+            try
+            {
+                $data = [
+                    "externalReference"=> $request->invoice_no,
+                    "billedFullName"=> $request->name,
+                    "billedPhoneNumber"=> $request->msisdn,
+                    "billedPeriod"=> $request->billingPeriod,
+                    "invoiceName"=> $request->invoice_name,
+                    "dueDate"=> $request->due_date,
+                    "accountReference"=> $request->ref,
+                    "amount"=> $request->amount,
+                    "invoiceItems" => ["itemName" => $request->item_name,"amount"=>$request->item_amount]
+                ];
+
+
+                return $this->invoke_server($this->link.self::billMSingleInvoice,$data,$this->generate_token($request)->access_token);
+            }
+            catch(HttpException $e)
+            {
+                Log::error($e->getMessage());
+            }
+        }
+    public function billManagerCancelSingleInvoice($request,$data)
+        {
+            try
+                {
+
+                    return $this->invoke_server($this->link.self::billMCancelSingleIn,$data,$this->generate_token($request)->access_token);
+                }
+            catch(HttpException $e)
+                {
+                    Log::error($e->getMessage());
+                }
+        }
 	}

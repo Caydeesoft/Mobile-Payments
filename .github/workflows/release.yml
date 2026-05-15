@@ -2,23 +2,22 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-      - master
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   release:
-    name: Version and release
+    name: Create GitHub release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create release PR or GitHub release
-        uses: googleapis/release-please-action@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: php
-          package-name: caydeesoft/payments
+          generate_release_notes: true

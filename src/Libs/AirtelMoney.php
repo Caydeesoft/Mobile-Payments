@@ -1,282 +1,180 @@
 <?php
 
+	namespace Caydeesoft\Payments\Libs;
 
-namespace Caydeesoft\Payments\Libs;
+	use Caydeesoft\Payments\Constants\AirtelMoneyParameters;
+	use Caydeesoft\Payments\Traits\Helper;
+	use Illuminate\Http\Request;
+	use Illuminate\Support\Facades\Http;
 
+	class AirtelMoney implements Paychannels
+		{
+			use Helper;
 
-use Caydeesoft\Payments\Constants\AirtelMoneyParameters;
-use Caydeesoft\Payments\Traits\Helper;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+			protected $baseurl;
+			protected $country;
+			protected $currency;
 
-class AirtelMoney implements Paychannels
-    {
-    use Helper;
-    public $baseurl;
+			public function __construct($env = 'production')
+				{
+					$this->baseurl = rtrim($this->configValue(
+						$env === 'production' ? 'payments.channels.airtel.production_url' : 'payments.channels.airtel.sandbox_url',
+						$env === 'production' ? 'https://openapi.airtel.africa' : 'https://openapiuat.airtel.africa'
+					),                     '/');
 
-    public function __construct ($env)
-    {
-        if ( $env == 'production' )
-        {
-            $this -> baseurl = 'https://openapi.airtel.africa/';
-        }
-        else
-        {
-            $this -> baseurl = 'https://openapiuat.airtel.africa/';
-        }
-    }
+					$this->country  = $this->configValue('payments.channels.airtel.country', AirtelMoneyParameters::country);
+					$this->currency = $this->configValue('payments.channels.airtel.currency', AirtelMoneyParameters::currency);
+				}
 
-    public function generate_token($request)
-    {
-        try
-        {
-            $dt     =   [
-                "client_id"     => $request->consumerkey ,
-                "client_secret" => $request->consumersecret ,
-                "grant_type" => "client_credentials"
-            ];
-            $data   =   Http ::withHeaders ( [ 'Content-Type' => 'application/json' ] )
-                ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-                ->post ( $this -> baseurl . AirtelMoneyParameters::tokenurl ,$dt );
-            if ( $data -> successful () )
-            {
-                return json_decode ( $data -> body () );
-            }
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
+			public function generate_token($request)
+				{
+					$response = Http::withHeaders(['Content-Type' => 'application/json'])
+					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->post($this->url(AirtelMoneyParameters::tokenurl), [
+						                'client_id'     => $this->requestValue($request, 'consumerkey', $this->requestValue($request, 'client_id')),
+						                'client_secret' => $this->requestValue($request, 'consumersecret', $this->requestValue($request, 'client_secret')),
+						                'grant_type'    => 'client_credentials',
+					                ]);
 
+					return $response->successful() ? $response->object() : null;
+				}
 
-    }
-    public function RegisterURL($request)
-    {
-        try
-        {
+			public function RegisterURL($request)
+				{
+					return [
+						'message'      => 'Airtel callback URLs are configured from the Airtel portal or partner account.',
+						'callback_url' => $this->requestValue($request, 'callback_url'),
+					];
+				}
 
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage()) ;
-        }
-    }
-    public function cert_encrypt ($data)
-    {
-        try
-        {
-            $publicKeyString = file_get_contents ( app_path ( "/Resources/cacert.pem" ) );
-            $publicKey       = openssl_pkey_get_public ( array ( $publicKeyString , "" ) );
-            if ( ! $publicKey )
-            {
-                Log ::error ( "Public key NOT Correct" );
-            }
-            if ( ! openssl_public_encrypt ( $data , $encryptedWithPublic , $publicKey ) )
-            {
-                Log ::error ( "Error encrypting with public key" );
-            }
-            return base64_encode ( $encryptedWithPublic );
-        }
-        catch(\HttpException $e)
-        {
-            Log::error($e->getMessage()) ;
-        }
+			public function cert_encrypt($data)
+				{
+					$key   = $this->requestValue($data, 'public_key');
+					$plain = is_string($data) ? $data : $this->requestValue($data, 'value', '');
 
-    }
+					if (!$key)
+						{
+							return base64_encode($plain);
+						}
 
-    public function stkpush ($request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::stk_url ,[ "reference" => $request -> ref , "subscriber" => [ "country" => AirtelMoneyParameters::country , "currency" => AirtelMoneyParameters::currency , "msisdn" => $request -> msisdn ] , "transaction" => [ "amount" => $request -> amount , "country" => AirtelMoneyParameters::country , "currency" => AirtelMoneyParameters::currency , "id" => $request -> id ] ] );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+					openssl_public_encrypt($plain, $encrypted, $key);
 
-    public function refund ($request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::refund_url ,[ "transaction" => [ "airtel_money_id" => $request -> receipt ] ] );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+					return base64_encode($encrypted);
+				}
 
-    public function transaction_enquiry ($request,$id)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> get ( $this -> baseurl . AirtelMoneyParameters::trans_enquiry . $id );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function stkpush($request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::stk_url, [
+						'reference'   => $this->requestValue($request, 'ref', $this->requestValue($request, 'reference')),
+						'subscriber'  => [
+							'country'  => $this->requestValue($request, 'country', $this->country),
+							'currency' => $this->requestValue($request, 'currency', $this->currency),
+							'msisdn'   => $this->requestValue($request, 'msisdn'),
+						],
+						'transaction' => [
+							'amount'   => $this->requestValue($request, 'amount'),
+							'country'  => $this->requestValue($request, 'country', $this->country),
+							'currency' => $this->requestValue($request, 'currency', $this->currency),
+							'id'       => $this->requestValue($request, 'id', $this->requestValue($request, 'ref')),
+						],
+					]);
+				}
 
-    public function kyc ($request,$msisdn)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> get ( $this -> baseurl . AirtelMoneyParameters::kyc_url . $msisdn );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function refund($request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::refund_url, [
+						'transaction' => [
+							'airtel_money_id' => $this->requestValue($request, 'receipt', $this->requestValue($request, 'transaction_id')),
+						],
+					]);
+				}
 
-    public function balance ($request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> get ( $this -> baseurl . AirtelMoneyParameters::balance );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function transaction_enquiry($request, $id = null)
+				{
+					return $this->authorized($request, 'get', AirtelMoneyParameters::trans_enquiry . ($id ?: $this->requestValue($request, 'id')));
+				}
 
-    public function disburse (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::disburse_url , [ "payee" => [ "msisdn" => $request -> msisdn ] , "reference" => $request -> ref , "pin" => $this -> certencrypt ( $request -> pin ) , "transaction" => [ "amount" => $request -> amount , "id" => $request -> id ] ] );
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function kyc($request, $msisdn = null)
+				{
+					return $this->authorized($request, 'get', AirtelMoneyParameters::kyc_url . ($msisdn ?: $this->requestValue($request, 'msisdn')));
+				}
 
-    public function disburse_refund (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::disburse_ref_url ,[ "transaction" => [ "airtel_money_id" => $request -> receipt ] ] );
+			public function balance($request)
+				{
+					return $this->authorized($request, 'get', AirtelMoneyParameters::balance);
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function disburse(Request $request)
+				{
+					return $this->b2c($request);
+				}
 
-    public function disburse_enquiry (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' , 'X-Country' => AirtelMoneyParameters::country , 'X-Currency' => AirtelMoneyParameters::currency ] )
-            -> get ( $this -> baseurl . AirtelMoneyParameters::disburse_enquiry );
+			public function disburse_refund(Request $request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::disburse_ref_url, [
+						'transaction' => [
+							'airtel_money_id' => $this->requestValue($request, 'receipt', $this->requestValue($request, 'transaction_id')),
+						],
+					]);
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function disburse_enquiry(Request $request)
+				{
+					return $this->authorized($request, 'get', AirtelMoneyParameters::disburse_enquiry . $this->requestValue($request, 'id', ''));
+				}
 
-    public function b2b_validate (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            -> withHeaders ( [ 'Content-Type' => 'application/json' ] )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> post ( $this -> baseurl . AirtelMoneyParameters::b2cvalidate , [ "amount" => $request -> amount , "channelName" => $request -> channel , "country" => $request -> country , "currency" => $request -> currency , "msisdn" => $request -> msisdn ] );
+			public function b2b_validate(Request $request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::b2cvalidate, $this->requestData($request));
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function b2b_status(Request $request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::b2cstatus, $this->requestData($request));
+				}
 
-    public function b2b_status (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::b2cstatus ,[ "channelName" => $request -> channel , "country" => $request -> country , "extTRID" => $request -> id ] );
+			public function b2b_credit(Request $request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::b2ccredit, $this->requestData($request));
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
+			public function b2b_refund(Request $request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::b2crefund, $this->requestData($request));
+				}
 
-    /**
-     * @param Request $request
-     * @return mixed
-     */
-    public function b2b_credit (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::b2ccredit , [ "amount" => $request -> amount , "channelName" => $request -> channel , "country" => $request -> country , "currency" => $request -> currency , "extTRID" => $request -> id , "msisdn" => $request -> msisdn , "mtcn" => $request -> mtcn , "payerCountry" => $request -> payer_country , "payerFirstName" => $request -> payer_firstname , "payerLastName" => $request -> payer_lastname , "pin" => $this -> certencrypt ( $request -> pin ) ] );
+			public function b2c($request)
+				{
+					return $this->authorized($request, 'post', AirtelMoneyParameters::disburse_url, [
+						'payee'       => [
+							'msisdn' => $this->requestValue($request, 'msisdn'),
+						],
+						'reference'   => $this->requestValue($request, 'ref', $this->requestValue($request, 'reference')),
+						'pin'         => $this->requestValue($request, 'pin'),
+						'transaction' => [
+							'amount' => $this->requestValue($request, 'amount'),
+							'id'     => $this->requestValue($request, 'id', $this->requestValue($request, 'ref')),
+						],
+					]);
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
+			public function b2b($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', AirtelMoneyParameters::b2ccredit), $this->requestData($request));
+				}
 
-    }
+			protected function authorized($request, $method, $endpoint, array $payload = [])
+				{
+					$token = $this->generate_token($request);
 
-    /**
-     * @param Request $request
-     * @return mixed
-     */
-    public function b2b_refund (Request $request)
-    {
-        $data = Http ::withToken ( $this -> generate_token($request) -> access_token )
-            ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-            -> withHeaders ( [ 'Content-Type' => 'application/json' ] )
-            -> post ( $this -> baseurl . AirtelMoneyParameters::b2crefund , [ "channelName" => $request -> channel , "country" => $request -> country , "txnID" => $request -> txnID , "pin" => $this -> certencrypt ( $request -> pin ) ] );
+					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null, [
+						'X-Country'  => $this->requestValue($request, 'country', $this->country),
+						'X-Currency' => $this->requestValue($request, 'currency', $this->currency),
+					]);
+				}
 
-        if ( $data -> successful () )
-        {
-            return json_decode ( $data -> body () );
-        }
-        Log ::error ( $data -> clientError () );
-    }
-
-    public function b2c($request)
-    {
-        try
-        {
-
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage()) ;
-        }
-    }
-
-    public function b2b($request)
-    {
-        try
-        {
-
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage()) ;
-        }
-    }
-    }
+			protected function url($endpoint)
+				{
+					return $this->baseurl . '/' . ltrim($endpoint, '/');
+				}
+		}

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "2025-06-18",
+  "name": "caydeesoft-payments",
+  "title": "Caydeesoft Laravel Mobile Money Payments",
+  "description": "MCP-style catalog for a Laravel mobile money package supporting M-Pesa, Airtel Money, T-Kash, EazzyPay, MTN and Tigo.",
+  "version": "0.1.0",
+  "resources": [
+    {
+      "uri": "file://composer.json",
+      "name": "Composer package metadata",
+      "mimeType": "application/json",
+      "description": "Laravel package metadata, keywords, support links and auto-discovery configuration."
+    },
+    {
+      "uri": "file://src/config/payments.php",
+      "name": "Payments configuration",
+      "mimeType": "text/x-php",
+      "description": "Default channel, environment, callback route and provider base URL configuration."
+    },
+    {
+      "uri": "file://src/routes/payments.php",
+      "name": "Callback routes",
+      "mimeType": "text/x-php",
+      "description": "Laravel routes for generic provider callbacks and legacy M-Pesa callback endpoints."
+    },
+    {
+      "uri": "file://Readme.md",
+      "name": "Developer README",
+      "mimeType": "text/markdown",
+      "description": "Installation, usage, callback routes and endpoint override examples."
+    }
+  ],
+  "tools": [
+    {
+      "name": "payments_channel_operation",
+      "description": "Describe or invoke a payment operation through the Laravel Payments facade. Live invocation should require explicit user approval and valid provider credentials.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["channel", "operation", "environment"],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": ["mpesa", "airtel", "tkash", "eazzy", "mtn", "tigo"]
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["generate_token", "stkpush", "registerURL", "balance", "refund", "b2c", "b2b"]
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["sandbox", "production"]
+          },
+          "payload": {
+            "type": "object",
+            "description": "Provider request data. May include endpoint override for Airtel Money, T-Kash and EazzyPay partner-specific APIs."
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "provider": {"type": "string"},
+          "operation": {"type": "string"},
+          "accepted": {"type": "boolean"},
+          "data": {"type": "object"}
+        }
+      }
+    },
+    {
+      "name": "payments_callback_parser",
+      "description": "Normalize incoming callback payloads for supported providers and events without assuming undocumented provider schemas.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["provider", "event", "payload"],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["mpesa", "airtel", "tkash", "eazzy", "mtn", "tigo"]
+          },
+          "event": {
+            "type": "string",
+            "enum": ["b2b", "b2c", "transaction-status", "stk-query", "stk", "reversal", "account-balance", "c2b-confirmation", "c2b-validation"]
+          },
+          "payload": {
+            "type": "object"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "accepted": {"type": "boolean"},
+          "provider": {"type": "string"},
+          "event": {"type": "string"},
+          "data": {"type": "object"}
+        }
+      }
+    }
+  ],
+  "security": {
+    "secrets": [
+      "consumerkey",
+      "consumersecret",
+      "client_id",
+      "client_secret",
+      "password",
+      "pin",
+      "passkey"
+    ],
+    "notes": "Never expose provider credentials in MCP resources, README examples, logs or callback responses. Require explicit approval before live payment API calls."
+  }
+}

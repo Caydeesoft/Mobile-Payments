@@ -1,7 +1,30 @@
 {
     "name": "caydeesoft/payments",
-    "description": " integration for mobile",
-    "keywords": ["mobile-payments", "mpesa", "airtel money", "tkash", "mtn"],
+    "description": "Laravel mobile money payment gateway package for M-Pesa, Airtel Money, T-Kash, EazzyPay, MTN and Tigo callbacks, STK push, refunds, balances and disbursements.",
+    "type": "library",
+    "keywords": [
+        "laravel payments",
+        "mobile money",
+        "mobile payments",
+        "mpesa",
+        "m-pesa",
+        "safaricom daraja",
+        "airtel money",
+        "tkash",
+        "t-kash",
+        "eazzypay",
+        "equity bank",
+        "mtn mobile money",
+        "tigo pesa",
+        "stk push",
+        "c2b",
+        "b2c",
+        "b2b",
+        "payment callbacks",
+        "kenya payments",
+        "africa payments"
+    ],
+    "homepage": "https://github.com/caydeesoft/payments",
     "license": "MIT",
     "authors": [
         {
@@ -19,6 +42,11 @@
         "psr-4": {
             "Caydeesoft\\Payments\\": "src"
         }
+    },
+    "support": {
+        "email": "dennis.kiptoo@caydeesoft.com",
+        "issues": "https://github.com/caydeesoft/payments/issues",
+        "source": "https://github.com/caydeesoft/payments"
     },
     "extra": {
         "laravel": {

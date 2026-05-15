@@ -1,194 +1,112 @@
 <?php
 
+	namespace Caydeesoft\Payments\Libs;
 
-namespace Caydeesoft\Payments\Libs;
+	use Caydeesoft\Payments\Constants\TkashParameters;
+	use Caydeesoft\Payments\Traits\Helper;
 
+	class Tkash implements Paychannels
+		{
+			use Helper;
 
-use Caydeesoft\Payments\Traits\Helper;
+			protected $link;
 
-class Tkash implements PayChannels
-{
-    use Helper;
-    public $link;
+			public function __construct($env = 'production')
+				{
+					$this->link = rtrim($this->configValue(
+						$env === 'production' ? 'payments.channels.tkash.production_url' : 'payments.channels.tkash.sandbox_url',
+						$env === 'production' ? 'https://production.gw.mfs-tkl.com' : 'https://staging.gw.mfs-tkl.com'
+					),                  '/');
+				}
 
-    public function __construct($env)
-    {
+			public function cert_encrypt($plaintext)
+				{
+					return base64_encode($plaintext);
+				}
 
-        if($env == 'production')
-        {
-            $this->link     =	'https://production.gw.mfs-tkl.com/';
+			public function stkpush($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', TkashParameters::stkpush), $this->requestData($request));
+				}
 
-        }
-        else
-        {
-            $this->link     =	'https://staging.gw.mfs-tkl.com/';
+			public function generate_token($request)
+				{
+					$credentials = base64_encode($this->requestValue($request, 'consumerkey') . ':' . $this->requestValue($request, 'consumersecret'));
 
-        }
+					return $this->jsonRequest('post', $this->url(TkashParameters::token_link), [
+						'username' => $this->requestValue($request, 'name', $this->requestValue($request, 'username')),
+						'password' => $this->requestValue($request, 'password'),
+					],                        null, [
+						                          'Authorization' => 'Basic ' . $credentials,
+					                          ]);
+				}
 
-    }
+			public function RegisterURL($request)
+				{
+					return $this->authorized($request, 'post', TkashParameters::registerurl, [
+						'registerUrlRequest' => [
+							'consumerId'          => $this->requestValue($request, 'consumer_id'),
+							'notificationUrl'     => TkashParameters::c2bconfirmationcallback(),
+							'notificationUrlType' => 'REST',
+							'validationUrl'       => TkashParameters::c2bvalidationcallback(),
+							'validationUrlType'   => 'REST',
+							'creationDate'        => date('d-M-y\TH:i:s'),
+						],
+					]);
+				}
 
-    /**
-     * @param $plaintext
-     * @return void
-     */
-    public function cert_encrypt($plaintext)
-    {
+			public function UpdateURL($request)
+				{
+					return $this->authorized($request, 'put', TkashParameters::updateURL, [
+						'registerUrlRequest' => [
+							'consumerId'          => $this->requestValue($request, 'consumer_id'),
+							'notificationUrl'     => TkashParameters::c2bconfirmationcallback(),
+							'notificationUrlType' => 'REST',
+							'validationUrl'       => TkashParameters::c2bvalidationcallback(),
+							'validationUrlType'   => 'REST',
+							'creationDate'        => date('d-M-y\TH:i:s'),
+						],
+					]);
+				}
 
-    }
+			public function replayNotification($request)
+				{
+					return $this->authorized($request, 'get', TkashParameters::replayNotification, [
+						'notificationType' => $this->requestValue($request, 'notificationType'),
+						'id'               => $this->requestValue($request, 'consumer_id'),
+						'limit'            => $this->requestValue($request, 'limit'),
+					]);
+				}
 
-    /**
-     * @param $request
-     * @return void
-     */
-    public function stkpush($request)
-    {
+			public function balance($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', TkashParameters::balance), $this->requestData($request));
+				}
 
-    }
-    /**
-     * @param $request
-     * @return array|object|void
-     */
-    public function generate_token($request)
-    {
-        try
-        {
-            $credentials    =   base64_encode($request->consumerkey.':'.$request->consumersecret);
-            $data           =   Http::withHeaders(['Content-Type'=>'application/json','Authorization'=>'Basic '.$credentials])
-                ->withOptions(['verify' => app_path("Resources/cacert.pem"), 'http_errors' => false])
-                ->post($this->link.TkashParameters::token_link,['username'=>$request->name,'password'=>$request->password]);
+			public function b2c($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', TkashParameters::b2c), $this->requestData($request));
+				}
 
-            if($data->successful())
-            {
-                Log::error("Tkash Token",(array)$data->object());
-                return $data->object();
-            }
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
+			public function b2b($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', TkashParameters::b2b), $this->requestData($request));
+				}
 
-    }
+			public function refund($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', TkashParameters::refund), $this->requestData($request));
+				}
 
-    /**
-     * @param $request
-     * @return array|object|void
-     */
-    public function RegisterURL($request)
-    {
-        try
-        {
-            $post_data  = [
+			protected function authorized($request, $method, $endpoint, array $payload = [])
+				{
+					$token = $this->generate_token($request);
 
-                'registerUrlRequest' =>
-                    [
+					return $this->jsonRequest($method, $this->url($endpoint), $payload, isset($token->access_token) ? $token->access_token : null);
+				}
 
-                        'consumerId'            => $request->consumer_id ,
-                        'notificationUrl'       => TkashParameters::c2bconfirmationcallback() ,
-                        'notificationUrlType'   => 'REST' ,
-                        'validationUrl'         => TkashParameters::c2bvalidationcallback() ,
-                        'validationUrlType'     => 'REST' ,
-                        'creationDate'          => date('d-M-y\TH:i:s')
-                    ]
-
-            ];
-            return $this->invoke_server($this->link.TkashParameters::registerurl , $post_data , $this->generate_token($request));
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
-    }
-
-    /**
-     * @param $request
-     * @return array|object|void
-     */
-    public function UpdateURL($request)
-    {
-        try
-        {
-            $post_data  = [
-
-                'registerUrlRequest' =>
-                    [
-
-                        'consumerId'            => $request->consumer_id ,
-                        'notificationUrl'       => TkashParameters::c2bconfirmationcallback() ,
-                        'notificationUrlType'   => 'REST' ,
-                        'validationUrl'         => TkashParameters::c2bvalidationcallback() ,
-                        'validationUrlType'     => 'REST' ,
-                        'creationDate'          => date('d-M-y\TH:i:s')
-                    ]
-
-            ];
-            return $this->invoke_server($this->link.TkashParameters::updateURL , $post_data , $this->generate_token($request),'put');
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
-    }
-
-    /**
-     * @param $request
-     * @return array|object|void
-     */
-    public function replayNotification($request)
-    {
-        try
-        {
-            $notificationTypeValues = [ 'ATP' , 'B2C' , 'C2B' , 'B2B' ];
-
-            //Check whether the correct NotificationTypeValues have been set.
-            if (!in_array(strtoupper($request->notificationType) , $notificationTypeValues))
-            {
-                die(json_encode([ 'errorMessage' => 'Error on Request Channel' , 'errorDescription' => 'Notification Type: ' . $notificationType . ' is Unknown. Allowed Types are ATP|B2C|C2B|B2B' ]));
-            }
-            else
-            {
-                $params = http_build_query(
-                    [
-                        'notificationType'  => $request->notificationType,
-                        'id'                => $request->consumer_id ,
-                        'limit'             => $request->limit
-                    ]
-                );
-
-                $response = $this->invoke_server( TkashParameters::replayNotification,$params  ,  $this->generate_token($request),"get" );
-
-                return $response;
-
-            }
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
-    }
-
-
-    /**
-     * @param $request
-     * @return mixed|void
-     */
-    public function balance($request)
-    {
-        // TODO: Implement balance() method.
-    }
-
-    public function b2c($request)
-    {
-        // TODO: Implement b2c() method.
-    }
-
-    public function b2b($request)
-    {
-        // TODO: Implement b2b() method.
-    }
-
-    public function refund($request)
-    {
-        // TODO: Implement refund() method.
-    }
-}
+			protected function url($endpoint)
+				{
+					return $this->link . '/' . ltrim($endpoint, '/');
+				}
+		}

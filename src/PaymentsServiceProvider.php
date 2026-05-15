@@ -2,7 +2,7 @@
 
 namespace Caydeesoft\Payments;
 
-use Illuminate\Support\Facades\App;
+use Caydeesoft\Payments\Libs\Payments;
 use Illuminate\Support\ServiceProvider;
 
 class PaymentsServiceProvider extends ServiceProvider
@@ -13,12 +13,16 @@ class PaymentsServiceProvider extends ServiceProvider
      * @return void
      */
     public function register()
-        {
-            App::bind('payment', \Caydeesoft\Payments\Libs\Payments::class);
-            $this->mergeConfigFrom(
-                __DIR__ . '/config/payments.php', 'payments'
+    {
+        $this->mergeConfigFrom(__DIR__ . '/config/payments.php', 'payments');
+
+        $this->app->singleton('payment', function () {
+            return new Payments(
+                config('payments.default', 'mpesa'),
+                config('payments.environment', 'sandbox')
             );
-        }
+        });
+    }
 
     /**
      * Bootstrap services.
@@ -27,9 +31,12 @@ class PaymentsServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (config('payments.routes.enabled', true)) {
+            $this->loadRoutesFrom(__DIR__ . '/routes/payments.php');
+        }
+
         $this->publishes([
             __DIR__ . '/config/payments.php' => config_path('payments.php'),
-        ]);
-
+        ], 'payments-config');
     }
 }

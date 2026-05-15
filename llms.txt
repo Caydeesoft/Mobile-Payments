@@ -1,0 +1,35 @@
+# Caydeesoft Payments
+
+Laravel mobile money payment gateway package for African payment providers.
+
+## Summary
+
+`caydeesoft/payments` provides a Laravel facade, service provider, configurable payment channels and callback routes for M-Pesa, Airtel Money, T-Kash, EazzyPay, MTN Mobile Money and Tigo.
+
+## Primary Use Cases
+
+- Initiate M-Pesa STK Push requests.
+- Generate provider access tokens.
+- Register and process payment callback URLs.
+- Query balances and transaction status.
+- Process refunds, reversals, B2C payouts and B2B transfers.
+- Normalize callbacks from providers with unclear or partner-specific documentation.
+
+## Important Files
+
+- `composer.json`: package metadata and Laravel auto-discovery.
+- `src/config/payments.php`: package configuration.
+- `src/Libs/Payments.php`: channel selector and facade target.
+- `src/Libs/Mpesa.php`: M-Pesa driver.
+- `src/Libs/AirtelMoney.php`: Airtel Money driver.
+- `src/Libs/Tkash.php`: T-Kash driver.
+- `src/Libs/EazzyPay.php`: EazzyPay driver.
+- `src/Libs/Mtn.php`: MTN Mobile Money driver.
+- `src/Libs/Tigo.php`: Tigo/Tigo Pesa driver.
+- `src/routes/payments.php`: callback routes.
+- `src/Http/Controllers/CallbackController.php`: callback dispatcher.
+- `mcp.json`: MCP-style tool and resource catalog.
+
+## Safe Agent Guidance
+
+Do not invent provider credentials. Do not execute live payment requests without explicit user confirmation. Prefer sandbox environment for examples. When provider documentation is unclear, use the request-level `endpoint` override and preserve the original callback payload.

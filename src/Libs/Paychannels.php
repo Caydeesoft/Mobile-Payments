@@ -4,8 +4,6 @@ namespace Caydeesoft\Payments\Libs;
 
 interface Paychannels
 {
-
-
     /**
      * @param $request
      * @return mixed
@@ -53,5 +51,4 @@ interface Paychannels
      * @return mixed
      */
     public function generate_token($request);
-
 }

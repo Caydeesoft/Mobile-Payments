@@ -1,151 +1,109 @@
 <?php
 
-namespace Caydeesoft\Payments\Libs;
+	namespace Caydeesoft\Payments\Libs;
 
-use Caydeesoft\Payments\Constants\EazzyPayParameters;
-use Caydeesoft\Payments\Traits\Helper;
+	use Caydeesoft\Payments\Constants\EazzyPayParameters;
+	use Caydeesoft\Payments\Traits\Helper;
+	use Illuminate\Support\Facades\Http;
 
-class EazzyPay extends EazzyPayParameters implements Paychannels
-{
-    use Helper;
-    protected  $link;
-    public function __construct($env='production')
-    {
-        if($env == 'production')
-        {
-            $this->link       = 'https://api.equitybankgroup.com';
+	class EazzyPay extends EazzyPayParameters implements Paychannels
+		{
+			use Helper;
 
-        }
-        else
-        {
-            $this->link       = 'https://api.equitybankgroup.com';
-        }
-    }
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function RegisterURL($request)
-    {
-        // TODO: Implement RegisterURL() method.
-    }
+			protected $link;
 
-    /**
-     * @param $plaintext
-     * @return mixed
-     */
-    public function cert_encrypt($plaintext)
-    {
-        // TODO: Implement cert_encrypt() method.
-    }
+			public function __construct($env = 'production')
+				{
+					$this->link = rtrim($this->configValue(
+						$env === 'production' ? 'payments.channels.eazzy.production_url' : 'payments.channels.eazzy.sandbox_url',
+						'https://api.equitybankgroup.com'
+					),                  '/');
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function balance($request)
-    {
-        // TODO: Implement balance() method.
-    }
+			public function RegisterURL($request)
+				{
+					return [
+						'message'      => 'EazzyPay callback URLs are configured from the bank or partner portal.',
+						'callback_url' => $this->requestValue($request, 'callback_url'),
+					];
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function stkpush($request)
-    {
-        // TODO: Implement stkpush() method.
-    }
+			public function cert_encrypt($plaintext)
+				{
+					return base64_encode($plaintext);
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function b2c($request)
-    {
-        try
-        {
-            $data   =   [
-                'transactionReference'  =>  $request->ref,
-                'source'                =>  [
-                    'senderName'=>$request->sender_name
-                ],
-                'destination'           =>  $request->des,
-                'transfer'              =>  $request->trans
-            ];
-            $url    =   $this->link.EazzyPayParameters::disburse_link;
-            $token  =   $this->generate_token($request);
-            if(property_exists($token,'access_token'))
-            {
-                return $this->invoke_server($url,$data,$token->access_token);
-            }
-        }
-        catch(HttpException $e)
-        {
-            Log::error($e->getMessage());
-        }
-    }
+			public function balance($request)
+				{
+					return $this->authorized($request, 'get', $this->requestValue($request, 'endpoint', '/transaction/v1-sandbox/balance'));
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function b2b($request)
-    {
-        // TODO: Implement b2b() method.
-    }
+			public function stkpush($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', EazzyPayParameters::disburse_link), $this->requestData($request));
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function refund($request)
-    {
-        // TODO: Implement refund() method.
-    }
+			public function b2c($request)
+				{
+					return $this->authorized($request, 'post', EazzyPayParameters::disburse_link, [
+						'transactionReference' => $this->requestValue($request, 'ref', $this->requestValue($request, 'transactionReference')),
+						'source'               => [
+							'senderName' => $this->requestValue($request, 'sender_name', $this->requestValue($request, 'senderName')),
+						],
+						'destination'          => $this->requestValue($request, 'des', $this->requestValue($request, 'destination')),
+						'transfer'             => $this->requestValue($request, 'trans', $this->requestValue($request, 'transfer')),
+					]);
+				}
 
-    /**
-     * @param $request
-     * @return mixed
-     */
-    public function generate_token($request)
-    {
-        $url    =   $this->link.EazzyPayParameters::identity_link;
-        $header =   [
-            'Content-Type'  =>  'application/x-www-form-urlencoded',
-            'Authorization' =>  'Basic '.base64_encode("$request->consumerkey:$request->consumersecret")
-        ];
-        $data   =   [
-            'username'  =>  $request->username,
-            'password'  =>  $request->password,
-            'grant_type'=>  'password'
-        ];
-        $rq     =   Http::withHeaders($header)
-            ->post($url,$data);
-        if($rq->successful())
-        {
-            return $rq->object();
-        }
-    }
-    public function airtime($request)
-    {
-        $data   =   [
-            'customer'  =>  [
-                'mobileNumber'=>$request->phone
-            ],
-            'airtime'   =>  [
-                'amount'    =>  $request->amount,
-                'reference' =>  $request->ref,
-                'telco'     =>  $request->provider
-            ]
-        ];
+			public function b2b($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', EazzyPayParameters::disburse_link), $this->requestData($request));
+				}
 
-        $url    =   $this->link.EazzyPayParameters::airtime_link;
-        $token  =   $this->generate_token($request);
-        if(property_exists($token,'access_token'))
-        {
-            return $this->invoke_server($url,$data,$token->access_token);
-        }
-    }
+			public function refund($request)
+				{
+					return $this->authorized($request, 'post', $this->requestValue($request, 'endpoint', '/transaction/v1-sandbox/refund'), $this->requestData($request));
+				}
 
-}
+			public function generate_token($request)
+				{
+					$response = Http::asForm()
+					                ->withHeaders([
+						                              'Authorization' => 'Basic ' . base64_encode($this->requestValue($request, 'consumerkey') . ':' . $this->requestValue($request, 'consumersecret')),
+					                              ])
+					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->post($this->url(EazzyPayParameters::identity_link), [
+						                'username'   => $this->requestValue($request, 'username'),
+						                'password'   => $this->requestValue($request, 'password'),
+						                'grant_type' => $this->requestValue($request, 'grant_type', 'password'),
+					                ]);
+
+					return $response->successful() ? $response->object() : null;
+				}
+
+			public function airtime($request)
+				{
+					return $this->authorized($request, 'post', EazzyPayParameters::airtime_link, [
+						'customer' => [
+							'mobileNumber' => $this->requestValue($request, 'phone', $this->requestValue($request, 'msisdn')),
+						],
+						'airtime'  => [
+							'amount'    => $this->requestValue($request, 'amount'),
+							'reference' => $this->requestValue($request, 'ref'),
+							'telco'     => $this->requestValue($request, 'provider'),
+						],
+					]);
+				}
+
+			protected function authorized($request, $method, $endpoint, array $payload = [])
+				{
+					$token = $this->generate_token($request);
+
+					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null);
+				}
+
+			protected function url($endpoint)
+				{
+					return $this->link . '/' . ltrim($endpoint, '/');
+				}
+		}

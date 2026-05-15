@@ -20,10 +20,33 @@ class MpesaParameters
         public const billMSingleInvoice     =   '/v1/billmanager-invoice/single-invoicing';
         public const billMBulkInvoice       =   '/v1/billmanager-invoice/bulk-invoicing';
         public const billMCancelSingleIn    =   '/v1/billmanager-invoice/cancel-single-invoice';
+        public const billMCancelBulkIn      =   '/v1/billmanager-invoice/cancel-bulk-invoice';
+        public const billMReconciliation    =   '/v1/billmanager-invoice/reconciliation';
+        public const billMPaymentQuery      =   '/v1/billmanager-invoice/payment-query';
+        public const billMInvoiceQuery      =   '/v1/billmanager-invoice/invoice-query';
         public const qrcode                 =   '/mpesa/qrcode/v1/generate';
+        public const tax_remittance         =   '/mpesa/b2b/v1/remittax';
+        public const c2b_simulate           =   '/mpesa/c2b/v1/simulate';
+        public const ratiba_create          =   '/standingorder/v1/createStandingOrderExternal';
+        public const ratiba_update          =   '/standingorder/v1/updateStandingOrderExternal';
+        public const ratiba_cancel          =   '/standingorder/v1/cancelStandingOrderExternal';
+        public const ratiba_query           =   '/standingorder/v1/queryStandingOrderExternal';
+        public const ratiba_callback        =   '/standingorder/v1/processStandingOrderCallback';
         public static function billManagerOptinURL()
             {
-                return url("api/billmanageroptincallback");
+                return url("api/payments/callbacks/mpesa/bill-manager-optin");
+            }
+        public static function billManagerInvoiceURL()
+            {
+                return url("api/payments/callbacks/mpesa/bill-manager-invoice");
+            }
+        public static function billManagerPaymentURL()
+            {
+                return url("api/payments/callbacks/mpesa/bill-manager-payment");
+            }
+        public static function ratibaURL()
+            {
+                return url("api/payments/callbacks/mpesa/ratiba");
             }
         public static function reversalURL()
             {

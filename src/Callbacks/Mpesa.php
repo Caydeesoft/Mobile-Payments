@@ -1,252 +1,243 @@
 <?php
 
-namespace Caydeesoft\Payments\Callbacks;
+	namespace Caydeesoft\Payments\Callbacks;
 
-use Illuminate\Http\Request;
+	use Illuminate\Http\Request;
 
-class Mpesa implements CallbackInterface
-    {
-        public function processB2BRequestCallback(Request $request) :array
-            {
-                $callbackData 							=	$request->Result;
-                $resultCode 							=	$callbackData->ResultCode;
-                $resultDesc 							=	$callbackData->ResultDesc;
-                $originatorConversationID 				=	$callbackData->OriginatorConversationID;
-                $conversationID 						=	$callbackData->ConversationID;
-                $transactionID 							=	$callbackData->TransactionID;
-                $transactionReceipt						=	$callbackData->ResultParameters->ResultParameter[0]->Value;
-                $transactionAmount						=	$callbackData->ResultParameters->ResultParameter[1]->Value;
-                $b2CWorkingAccountAvailableFunds		=	$callbackData->ResultParameters->ResultParameter[2]->Value;
-                $b2CUtilityAccountAvailableFunds		=	$callbackData->ResultParameters->ResultParameter[3]->Value;
-                $transactionCompletedDateTime			=	$callbackData->ResultParameters->ResultParameter[4]->Value;
-                $receiverPartyPublicName				=	$callbackData->ResultParameters->ResultParameter[5]->Value;
-                $B2CChargesPaidAccountAvailableFunds	=	$callbackData->ResultParameters->ResultParameter[6]->Value;
-                $B2CRecipientIsRegisteredCustomer		=	$callbackData->ResultParameters->ResultParameter[7]->Value;
+	class Mpesa implements CallbackInterface
+		{
+			public function handleRequest($request, $isArray = true)
+				{
+					$rawData = $request->getContent();
+					$decoded = json_decode($rawData, $isArray);
 
-                $result=array(
-                    "resultCode"							=>	$resultCode,
-                    "resultDesc"							=>	$resultDesc,
-                    "originatorConversationID"				=>	$originatorConversationID,
-                    "conversationID"						=>	$conversationID,
-                    "transactionID"							=>	$transactionID,
-                    "transactionReceipt"					=>	$transactionReceipt,
-                    "transactionAmount"						=>	$transactionAmount,
-                    "b2CWorkingAccountAvailableFunds"		=>	$b2CWorkingAccountAvailableFunds,
-                    "b2CUtilityAccountAvailableFunds"		=>	$b2CUtilityAccountAvailableFunds,
-                    "transactionCompletedDateTime"			=>	$transactionCompletedDateTime,
-                    "receiverPartyPublicName"				=>	$receiverPartyPublicName,
-                    "B2CChargesPaidAccountAvailableFunds"	=>	$B2CChargesPaidAccountAvailableFunds,
-                    "B2CRecipientIsRegisteredCustomer"		=>	$B2CRecipientIsRegisteredCustomer
-                );
-                return $result;
+					if (json_last_error() === JSON_ERROR_NONE && $decoded !== null)
+						{
+							return $decoded;
+						}
 
-            }
-        public function processB2CRequestCallback(Request $request) :array
-            {
+					return $isArray ? $request->all() : json_decode(json_encode($request->all()));
+				}
 
-                $callbackData 						= 	$request->Result;
-                $resultCode 						=  	$callbackData->ResultCode;
-                $resultDesc 						=	$callbackData->ResultDesc;
-                $originatorConversationID 			= 	$callbackData->OriginatorConversationID;
-                $conversationID 					=	$callbackData->ConversationID;
-                $transactionID 						=	$callbackData->TransactionID;
-                $initiatorAccountCurrentBalance 	= 	$callbackData->ResultParameters->ResultParameter[0]->Value;
-                $debitAccountCurrentBalance 		=	$callbackData->ResultParameters->ResultParameter[1]->Value;
-                $amount 							=	$callbackData->ResultParameters->ResultParameter[2]->Value;
-                $debitPartyAffectedAccountBalance	=	$callbackData->ResultParameters->ResultParameter[3]->Value;
-                $transCompletedTime 				=	$callbackData->ResultParameters->ResultParameter[4]->Value;
-                $debitPartyCharges 					= 	$callbackData->ResultParameters->ResultParameter[5]->Value;
-                $receiverPartyPublicName 			= 	$callbackData->ResultParameters->ResultParameter[6]->Value;
-                $currency							=	$callbackData->ResultParameters->ResultParameter[7]->Value;
+			public function b2b(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$result       = $callbackData['Result'] ?? [];
 
-                $result=array(
-                    "resultCode"						=>	$resultCode,
-                    "resultDesc"						=>	$resultDesc,
-                    "originatorConversationID"			=>	$originatorConversationID,
-                    "conversationID"					=>	$conversationID,
-                    "transactionID"						=>	$transactionID,
-                    "initiatorAccountCurrentBalance"	=>	$initiatorAccountCurrentBalance,
-                    "debitAccountCurrentBalance"		=>	$debitAccountCurrentBalance,
-                    "amount"							=>	$amount,
-                    "debitPartyAffectedAccountBalance"	=>	$debitPartyAffectedAccountBalance,
-                    "transCompletedTime"				=>	$transCompletedTime,
-                    "debitPartyCharges"					=>	$debitPartyCharges,
-                    "receiverPartyPublicName"			=>	$receiverPartyPublicName,
-                    "currency"							=>	$currency
-                );
+					return $this->transactionResult($result);
+				}
 
+			public function b2c(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$result       = $callbackData['Result'] ?? [];
 
-                return $result;
-            }
-        public function C2BRequestValidation(Request $request) :array
-            {
-                $callbackData 		=	$request;
-                $transactionType 	=	$callbackData->TransactionType;
-                $transID 			=	$callbackData->TransID;
-                $transTime 			=	$callbackData->TransTime;
-                $transAmount 		=	$callbackData->TransAmount;
-                $businessShortCode 	=	$callbackData->BusinessShortCode;
-                $billRefNumber 		=	$callbackData->BillRefNumber;
-                $invoiceNumber 		=	$callbackData->InvoiceNumber;
-                $orgAccountBalance 	= 	$callbackData->OrgAccountBalance;
-                $thirdPartyTransID 	=	$callbackData->ThirdPartyTransID;
-                $MSISDN 			=	$callbackData->MSISDN;
-                $firstName 			=	$callbackData->FirstName;
-                $middleName 		=	$callbackData->MiddleName;
-                $lastName 			=	$callbackData->LastName;
+					return $this->transactionResult($result);
+				}
 
-                $result=array(
-                    "transTime"			=>	$transTime,
-                    "transAmount"		=>	$transAmount,
-                    "businessShortCode"	=>	$businessShortCode,
-                    "billRefNumber"		=>	$billRefNumber,
-                    "invoiceNumber"		=>	$invoiceNumber,
-                    "orgAccountBalance"	=>	$orgAccountBalance,
-                    "thirdPartyTransID"	=>	$thirdPartyTransID,
-                    "MSISDN"			=>	$MSISDN,
-                    "firstName"			=>	$firstName,
-                    "lastName"			=>	$lastName,
-                    "middleName"		=>	$middleName,
-                    "transID"			=>	$transID,
-                    "transactionType"	=>	$transactionType
-                );
+			public function validation(Request $request)
+				{
+					return array_merge($this->c2bPayload($request), [
+						'response' => [
+							'ResultCode' => '0',
+							'ResultDesc' => 'Accepted',
+						],
+					]);
+				}
 
-               return $result;
+			public function confirmation(Request $request)
+				{
+					return array_merge($this->c2bPayload($request), [
+						'response' => [
+							'ResultCode' => 0,
+							'ResultDesc' => 'Success',
+						],
+					]);
+				}
 
+			public function account_balance(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$result       = $callbackData['Result'] ?? [];
+					$parameters   = $this->resultParameters($result);
 
-            }
-        public function processC2BRequestConfirmation(Request $request)
-            {
-                $callbackData 		=	$request;
-                $transactionType 	=	$callbackData->TransactionType;
-                $transID 			= 	$callbackData->TransID;
-                $transTime 			=	$callbackData->TransTime;
-                $transAmount 		=	$callbackData->TransAmount;
-                $businessShortCode 	=	$callbackData->BusinessShortCode;
-                $billRefNumber 		=	$callbackData->BillRefNumber;
-                $invoiceNumber 		=	$callbackData->InvoiceNumber;
-                $orgAccountBalance 	=	$callbackData->OrgAccountBalance;
-                $thirdPartyTransID 	=	$callbackData->ThirdPartyTransID;
-                $MSISDN 			=	$callbackData->MSISDN;
-                $firstName 			=	$callbackData->FirstName;
-                $middleName 		= 	$callbackData->MiddleName;
-                $lastName 			=	$callbackData->LastName;
+					return array_merge($this->transactionResult($result), [
+						'resultType'      => $result['ResultType'] ?? null,
+						'accountBalance'  => $parameters['AccountBalance'] ?? $this->parameterByIndex($result, 0),
+						'BOCompletedTime' => $parameters['BOCompletedTime'] ?? $this->parameterByIndex($result, 1),
+						'parameters'      => $parameters,
+					]);
+				}
 
+			public function reversal(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$result       = $callbackData['Result'] ?? [];
 
-                $result             =   array(
-                    "transTime"			=>	$transTime,
-                    "transAmount"		=>	$transAmount,
-                    "businessShortCode"	=>	$businessShortCode,
-                    "billRefNumber"		=>	$billRefNumber,
-                    "invoiceNumber"		=>	$invoiceNumber,
-                    "orgAccountBalance"	=>	$orgAccountBalance,
-                    "thirdPartyTransID"	=>	$thirdPartyTransID,
-                    "MSISDN"			=>	$MSISDN,
-                    "firstName"			=>	$firstName,
-                    "lastName"			=>	$lastName,
-                    "middleName"		=>	$middleName,
-                    "transID"			=>	$transID,
-                    "transactionType"	=>	$transactionType
-                );
-                return $result;
+					return array_merge($this->transactionResult($result), [
+						'resultType' => $result['ResultType'] ?? null,
+						'receipt_no' => $result['TransactionID'] ?? null,
+					]);
+				}
 
-            }
-        public function processAccountBalanceRequestCallback(Request $request)
-            {
+			public function stk_push_request(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$callback     = $callbackData['Body']['stkCallback'] ?? [];
+					$metadata     = collect($callback['CallbackMetadata']['Item'] ?? [])
+						->mapWithKeys(function ($item)
+							{
+								return [$item['Name'] => $item['Value'] ?? null];
+							})
+						->toArray();
 
-                $callbackData               =   $request->Result;
-                $resultType                 =   $callbackData->ResultType;
-                $resultCode                 =   $callbackData->ResultCode;
-                $resultDesc                 =   $callbackData->ResultDesc;
-                $originatorConversationID   =   $callbackData->OriginatorConversationID;
-                $conversationID             =   $callbackData->ConversationID;
-                $transactionID              =   $callbackData->TransactionID;
-                $accountBalance             =   $callbackData->ResultParameters->ResultParameter[0]->Value;
-                $BOCompletedTime            =   $callbackData->ResultParameters->ResultParameter[1]->Value;
+					return [
+						'merchantRequestID'  => $callback['MerchantRequestID'] ?? null,
+						'checkoutRequestID'  => $callback['CheckoutRequestID'] ?? null,
+						'resultCode'         => $callback['ResultCode'] ?? null,
+						'resultDesc'         => $callback['ResultDesc'] ?? null,
+						'status'             => ($callback['ResultCode'] ?? null) == 0 ? 'success' : 'failed',
+						'completed'          => 1,
+						'amount'             => $metadata['Amount'] ?? null,
+						'mpesaReceiptNumber' => $metadata['MpesaReceiptNumber'] ?? null,
+						'transactionDate'    => $metadata['TransactionDate'] ?? null,
+						'phoneNumber'        => $metadata['PhoneNumber'] ?? null,
+						'metadata'           => $metadata,
+						'callback_payload'   => $callback,
+					];
+				}
 
-                $result=array(
-                    "resultDesc"                  =>$resultDesc,
-                    "resultCode"                  =>$resultCode,
-                    "originatorConversationID"    =>$originatorConversationID,
-                    "conversationID"              =>$conversationID,
-                    "transactionID"               =>$transactionID,
-                    "accountBalance"              =>$accountBalance,
-                    "BOCompletedTime"             =>$BOCompletedTime,
-                    "resultType"                  =>$resultType
-                );
+			public function stk_push_query(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
 
-                return $result;
+					return [
+						'responseCode'        => $callbackData['ResponseCode'] ?? null,
+						'responseDescription' => $callbackData['ResponseDescription'] ?? null,
+						'merchantRequestID'   => $callbackData['MerchantRequestID'] ?? null,
+						'checkoutRequestID'   => $callbackData['CheckoutRequestID'] ?? null,
+						'resultCode'          => $callbackData['ResultCode'] ?? null,
+						'resultDesc'          => $callbackData['ResultDesc'] ?? null,
+						'callback_payload'    => $callbackData,
+					];
+				}
 
+			public function transaction_status(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
+					$result       = $callbackData['Result'] ?? [];
+					$parameters   = $this->resultParameters($result);
 
-            }
-        public function processReversalRequestCallBack(Request $request)
-            {
+					return array_merge($this->transactionResult($result), [
+						'receiptNo'         => $parameters['ReceiptNo'] ?? $this->parameterByIndex($result, 0),
+						'finalisedTime'     => $parameters['FinalisedTime'] ?? $this->parameterByIndex($result, 2),
+						'amount'            => $parameters['Amount'] ?? $this->parameterByIndex($result, 3),
+						'transactionStatus' => $parameters['TransactionStatus'] ?? $this->parameterByIndex($result, 4),
+						'reasonType'        => $parameters['ReasonType'] ?? $this->parameterByIndex($result, 5),
+						'transactionReason' => $parameters['TransactionReason'] ?? $this->parameterByIndex($result, 6),
+						'debitPartyName'    => $parameters['DebitPartyName'] ?? $this->parameterByIndex($result, 12),
+						'referenceData'     => $result['ReferenceData'] ?? null,
+						'parameters'        => $parameters,
+					]);
+				}
 
-                $callbackData                       =   $request->Result;
-                $data['resultType']                 =   $callbackData->ResultType;
-                $data['resultCode']                 =   $callbackData->ResultCode;
-                $data['resultDesc']                 =   $callbackData->ResultDesc;
-                $data['originatorConversationID']   =   $callbackData->OriginatorConversationID;
-                $data['conversationID']             =   $callbackData->ConversationID;
-                $data['transactionID']              =   $callbackData->TransactionID;
-                return $data;
+			public function processB2BRequestCallback(Request $request)
+				{
+					return $this->b2b($request);
+				}
 
+			public function processB2CRequestCallback(Request $request)
+				{
+					return $this->b2c($request);
+				}
 
-            }
-        public function processSTKPushRequestCallback(Request $request)
-            {
+			public function C2BRequestValidation(Request $request)
+				{
+					return $this->validation($request);
+				}
 
-                $callbackData               =   $request->Body->stkCallback;
-                $data['resultCode']         =   $callbackData->ResultCode;
-                $data['resultDesc']         =   $callbackData->ResultDesc;
-                $data['merchantRequestID']  =   $callbackData->MerchantRequestID;
-                $data['checkoutRequestID']  =   $callbackData->CheckoutRequestID;
-                $data['amount']             =   $callbackData->CallbackMetadata->Item[0]->Value;
-                $data['mpesaReceiptNumber'] =   $callbackData->CallbackMetadata->Item[1]->Value;
-                $data['balance']            =   $callbackData->CallbackMetadata->Item[2]->Value;
-                $data['transactionDate']    =   $callbackData->CallbackMetadata->Item[3]->Value;
-                $data['phoneNumber']        =   $callbackData->CallbackMetadata->Item[4]->Value;
-                return $data;
+			public function processC2BRequestConfirmation(Request $request)
+				{
+					return $this->confirmation($request);
+				}
 
+			public function processAccountBalanceRequestCallback(Request $request)
+				{
+					return $this->account_balance($request);
+				}
 
-            }
-        public function processSTKPushQueryRequestCallback(Request $request)
-            {
+			public function processReversalRequestCallBack(Request $request)
+				{
+					return $this->reversal($request);
+				}
 
-                $callbackData 			        =	$request;
-                $data['responseCode'] 			=	$callbackData->ResponseCode;
-                $data['$responseDescription'] 	=	$callbackData->ResponseDescription;
-                $data['merchantRequestID'] 		=	$callbackData->MerchantRequestID;
-                $data['checkoutRequestID'] 		=	$callbackData->CheckoutRequestID;
-                $data['resultCode'] 			=	$callbackData->ResultCode;
-                $data['resultDesc'] 			=	$callbackData->ResultDesc;
-                return $data;
+			public function processSTKPushRequestCallback(Request $request)
+				{
+					return $this->stk_push_request($request);
+				}
 
+			public function processSTKPushQueryRequestCallback(Request $request)
+				{
+					return $this->stk_push_query($request);
+				}
 
-            }
-        public function processTransactionStatusRequestCallback(Request $request)
-            {
+			public function processTransactionStatusRequestCallback(Request $request)
+				{
+					return $this->transaction_status($request);
+				}
 
-                $callbackData                       =   $request->Result;
-                $data['resultCode']                 =   $callbackData->ResultCode;
-                $data['resultDesc']                 =   $callbackData->ResultDesc;
-                $data['originatorConversationID']   =   $callbackData->OriginatorConversationID;
-                $data['conversationID']             =   $callbackData->ConversationID;
-                $data['transactionID']              =   $callbackData->TransactionID;
-                $data['ReceiptNo']                  =   $callbackData->ResultParameters->ResultParameter[0]->Value;
-                $data['ConversationID']             =   $callbackData->ResultParameters->ResultParameter[1]->Value;
-                $data['FinalisedTime']              =   $callbackData->ResultParameters->ResultParameter[2]->Value;
-                $data['Amount']                     =   $callbackData->ResultParameters->ResultParameter[3]->Value;
-                $data['TransactionStatus']          =   $callbackData->ResultParameters->ResultParameter[4]->Value;
-                $data['ReasonType']                 =   $callbackData->ResultParameters->ResultParameter[5]->Value;
-                $data['TransactionReason']          =   $callbackData->ResultParameters->ResultParameter[6]->Value;
-                $data['DebitPartyCharges']          =   $callbackData->ResultParameters->ResultParameter[7]->Value;
-                $data['DebitAccountType']           =   $callbackData->ResultParameters->ResultParameter[8]->Value;
-                $data['InitiatedTime']              =   $callbackData->ResultParameters->ResultParameter[9]->Value;
-                $data['OriginatorConversationID']   =   $callbackData->ResultParameters->ResultParameter[10]->Value;
-                $data['CreditPartyName']            =   $callbackData->ResultParameters->ResultParameter[11]->Value;
-                $data['DebitPartyName']             =   $callbackData->ResultParameters->ResultParameter[12]->Value;
-                return $data;
-            }
+			protected function c2bPayload(Request $request)
+				{
+					$callbackData = $this->handleRequest($request, true);
 
-    }
+					return [
+						'transactionType'   => $callbackData['TransactionType'] ?? null,
+						'transID'           => $callbackData['TransID'] ?? null,
+						'transTime'         => $callbackData['TransTime'] ?? null,
+						'transAmount'       => $callbackData['TransAmount'] ?? null,
+						'businessShortCode' => $callbackData['BusinessShortCode'] ?? null,
+						'billRefNumber'     => $callbackData['BillRefNumber'] ?? null,
+						'invoiceNumber'     => $callbackData['InvoiceNumber'] ?? null,
+						'orgAccountBalance' => $callbackData['OrgAccountBalance'] ?? null,
+						'thirdPartyTransID' => $callbackData['ThirdPartyTransID'] ?? null,
+						'MSISDN'            => $callbackData['MSISDN'] ?? null,
+						'firstName'         => $callbackData['FirstName'] ?? null,
+						'middleName'        => $callbackData['MiddleName'] ?? null,
+						'lastName'          => $callbackData['LastName'] ?? null,
+						'callback_payload'  => $callbackData,
+					];
+				}
+
+			protected function transactionResult(array $result)
+				{
+					$resultCode = $result['ResultCode'] ?? null;
+
+					return [
+						'originatorConversationID' => $result['OriginatorConversationID'] ?? null,
+						'conversationID'           => $result['ConversationID'] ?? null,
+						'transactionID'            => $result['TransactionID'] ?? null,
+						'resultCode'               => $resultCode,
+						'resultDesc'               => $result['ResultDesc'] ?? null,
+						'status'                   => $resultCode == 0 ? 'success' : 'failed',
+						'completed'                => $resultCode == 0 ? 1 : 0,
+						'callback_payload'         => $result,
+					];
+				}
+
+			protected function resultParameters(array $result)
+				{
+					return collect($result['ResultParameters']['ResultParameter'] ?? [])
+						->mapWithKeys(function ($item)
+							{
+								$key = $item['Key'] ?? $item['Name'] ?? null;
+
+								return $key ? [$key => $item['Value'] ?? null] : [];
+							})
+						->toArray();
+				}
+
+			protected function parameterByIndex(array $result, $index)
+				{
+					return $result['ResultParameters']['ResultParameter'][$index]['Value'] ?? null;
+				}
+		}

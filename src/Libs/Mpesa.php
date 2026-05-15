@@ -9,8 +9,9 @@
 	use Symfony\Component\HttpKernel\Exception\HttpException;
 
 	class Mpesa extends MpesaParameters implements Paychannels
-		{
-			use Helper;
+	{
+		use Helper;
+		protected $provider = 'mpesa';
 
 			public $link, $cert, $timestamp;
 
@@ -34,9 +35,9 @@
 				{
 					try
 						{
-							$credentials = base64_encode($request->consumerkey . ':' . $request->consumersecret);
+							$credentials = base64_encode($this->credentialValue('mpesa', $request, 'consumerkey') . ':' . $this->credentialValue('mpesa', $request, 'consumersecret'));
 							$data        = Http::withHeaders(['Content-Type' => 'application/json', 'Authorization' => 'Basic ' . $credentials])
-							                   ->withOptions(['verify' => $this->resourcePath("cacert.pem"), 'http_errors' => false])
+							                   ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 							                   ->get($this->link . self::token_link);
 
 							if ($data->successful())
@@ -52,9 +53,10 @@
 				}
 
 			public function api($request, $endpoint = null, $method = 'post', ?array $payload = null)
-				{
-					$path = $endpoint ?: $this->requestValue($request, 'endpoint');
-					$data = $payload ?: $this->requestValue($request, 'payload', $this->requestData($request));
+					{
+						$path = $endpoint ?: $this->requestValue($request, 'endpoint');
+						$this->assertAllowedEndpoint('mpesa', $path, true);
+						$data = $payload ?: $this->requestValue($request, 'payload', $this->requestData($request));
 
 					return $this->invoke_server($this->link . $path, $data, $this->accessToken($request), $method);
 				}
@@ -119,11 +121,13 @@
 					try
 						{
 							//dd($this->generate_token($request)->access_token);
-							$password  = base64_encode($request->shortcode . $request->passkey . $this->timestamp);
+							$businessShortcode = $this->credentialValue('mpesa', $request, 'shortcode', $request->shortcode);
+							$passkey           = $this->credentialValue('mpesa', $request, 'passkey', $request->passkey);
+							$password          = base64_encode($businessShortcode . $passkey . $this->timestamp);
 							$type      = ($request->type == 'TILL') ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
-							$shortcode = ($request->type == 'TILL') ? $request->cshortcode : $request->shortcode;
+							$shortcode = ($request->type == 'TILL') ? $request->cshortcode : $businessShortcode;
 							$data      = [
-								'BusinessShortCode' => $request->shortcode,
+								'BusinessShortCode' => $businessShortcode,
 								'Password'          => $password,
 								'Timestamp'         => $this->timestamp,
 								'TransactionType'   => $type,
@@ -157,9 +161,11 @@
 				{
 					try
 						{
-							$password = base64_encode($request->shortcode . $request->passkey . $this->timestamp);
+							$businessShortcode = $this->credentialValue('mpesa', $request, 'shortcode', $request->shortcode);
+							$passkey           = $this->credentialValue('mpesa', $request, 'passkey', $request->passkey);
+							$password          = base64_encode($businessShortcode . $passkey . $this->timestamp);
 							$data     = [
-								'BusinessShortCode' => $request->shortcode,
+								'BusinessShortCode' => $businessShortcode,
 								'Password'          => $password,
 								'Timestamp'         => $this->timestamp,
 								'CheckoutRequestID' => $request->CheckoutRequestID

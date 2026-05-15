@@ -8,6 +8,7 @@
 	class Mtn implements Paychannels
 		{
 			use Helper;
+			protected $provider = 'mtn';
 
 			protected $baseurl;
 			protected $targetEnvironment;
@@ -68,14 +69,14 @@
 			public function generate_token($request)
 				{
 					$product = $this->requestValue($request, 'product', 'collection');
-					$user    = $this->requestValue($request, 'api_user', $this->requestValue($request, 'consumerkey'));
-					$key     = $this->requestValue($request, 'api_key', $this->requestValue($request, 'consumersecret'));
+					$user    = $this->credentialValue('mtn', $request, 'api_user', $this->requestValue($request, 'consumerkey'));
+					$key     = $this->credentialValue('mtn', $request, 'api_key', $this->requestValue($request, 'consumersecret'));
 
 					$response = Http::withBasicAuth($user, $key)
 					                ->withHeaders([
 						                              'Ocp-Apim-Subscription-Key' => $this->subscriptionKey($request, $product),
 					                              ])
-					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 					                ->post($this->url("/{$product}/token/"));
 
 					return $response->successful() ? $response->object() : null;
@@ -132,12 +133,15 @@
 			public function api($request, $endpoint = null, $method = 'post', ?array $payload = null)
 				{
 					$product = $this->requestValue($request, 'product', 'collection');
+					$path    = $endpoint ?: $this->requestValue($request, 'endpoint');
+					$this->assertAllowedEndpoint('mtn', $path, true);
 
-					return $this->authorized($request, $product, $method, $endpoint ?: $this->requestValue($request, 'endpoint'), $payload ?: $this->requestData($request));
+					return $this->authorized($request, $product, $method, $path, $payload ?: $this->requestData($request));
 				}
 
 			protected function authorized($request, $product, $method, $endpoint, array $payload = [], array $headers = [])
 				{
+					$this->assertAllowedEndpoint('mtn', $endpoint);
 					$token = $this->generate_token($this->withProduct($request, $product));
 
 					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null, array_merge([
@@ -148,7 +152,7 @@
 
 			protected function subscriptionKey($request, $product)
 				{
-					return $this->requestValue($request, $product . '_subscription_key', $this->requestValue($request, 'subscription_key'));
+					return $this->credentialValue('mtn', $request, $product . '_subscription_key', $this->credentialValue('mtn', $request, 'subscription_key'));
 				}
 
 			protected function referenceId($request)

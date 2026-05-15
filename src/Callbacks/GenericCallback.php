@@ -2,10 +2,13 @@
 
 namespace Caydeesoft\Payments\Callbacks;
 
+use Caydeesoft\Payments\Traits\Helper;
 use Illuminate\Http\Request;
 
 class GenericCallback implements CallbackInterface
 {
+    use Helper;
+
     public function processB2BRequestCallback(Request $request)
     {
         return $this->payload($request, 'b2b');
@@ -56,8 +59,8 @@ class GenericCallback implements CallbackInterface
         return [
             'provider' => $this->providerName(),
             'event' => $event,
-            'headers' => $request->headers->all(),
-            'payload' => $request->all(),
+            'headers' => $this->redactHeaders($request->headers->all()),
+            'payload' => $this->redactArray($request->all()),
             'raw' => $request->getContent(),
         ];
     }

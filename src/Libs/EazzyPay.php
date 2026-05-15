@@ -9,6 +9,7 @@
 	class EazzyPay extends EazzyPayParameters implements Paychannels
 		{
 			use Helper;
+			protected $provider = 'eazzy';
 
 			protected $link;
 
@@ -69,12 +70,12 @@
 				{
 					$response = Http::asForm()
 					                ->withHeaders([
-						                              'Authorization' => 'Basic ' . base64_encode($this->requestValue($request, 'consumerkey') . ':' . $this->requestValue($request, 'consumersecret')),
+						                              'Authorization' => 'Basic ' . base64_encode($this->credentialValue('eazzy', $request, 'consumerkey') . ':' . $this->credentialValue('eazzy', $request, 'consumersecret')),
 					                              ])
-					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 					                ->post($this->url(EazzyPayParameters::identity_link), [
-						                'username'   => $this->requestValue($request, 'username'),
-						                'password'   => $this->requestValue($request, 'password'),
+						                'username'   => $this->credentialValue('eazzy', $request, 'username'),
+						                'password'   => $this->credentialValue('eazzy', $request, 'password'),
 						                'grant_type' => $this->requestValue($request, 'grant_type', 'password'),
 					                ]);
 
@@ -97,6 +98,7 @@
 
 			protected function authorized($request, $method, $endpoint, array $payload = [])
 				{
+					$this->assertAllowedEndpoint('eazzy', $endpoint);
 					$token = $this->generate_token($request);
 
 					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null);

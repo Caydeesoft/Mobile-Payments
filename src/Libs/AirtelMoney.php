@@ -10,6 +10,7 @@
 	class AirtelMoney implements Paychannels
 		{
 			use Helper;
+			protected $provider = 'airtel';
 
 			protected $baseurl;
 			protected $country;
@@ -29,10 +30,10 @@
 			public function generate_token($request)
 				{
 					$response = Http::withHeaders(['Content-Type' => 'application/json'])
-					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 					                ->post($this->url(AirtelMoneyParameters::tokenurl), [
-						                'client_id'     => $this->requestValue($request, 'consumerkey', $this->requestValue($request, 'client_id')),
-						                'client_secret' => $this->requestValue($request, 'consumersecret', $this->requestValue($request, 'client_secret')),
+						                'client_id'     => $this->credentialValue('airtel', $request, 'consumerkey', $this->requestValue($request, 'client_id')),
+						                'client_secret' => $this->credentialValue('airtel', $request, 'consumersecret', $this->requestValue($request, 'client_secret')),
 						                'grant_type'    => 'client_credentials',
 					                ]);
 
@@ -165,6 +166,7 @@
 
 			protected function authorized($request, $method, $endpoint, array $payload = [])
 				{
+					$this->assertAllowedEndpoint('airtel', $endpoint);
 					$token = $this->generate_token($request);
 
 					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null, [

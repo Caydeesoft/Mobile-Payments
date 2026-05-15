@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([
     'prefix' => config('payments.routes.prefix', 'api'),
-    'middleware' => config('payments.routes.middleware', ['api']),
+    'middleware' => array_merge(config('payments.routes.middleware', ['api']), ['payments.callback.verify']),
 ], function () {
     Route::post('payments/callbacks/{provider}/{event}', [CallbackController::class, 'handle'])
         ->name('payments.callbacks.handle');

@@ -8,6 +8,7 @@
 	class Tigo implements Paychannels
 		{
 			use Helper;
+			protected $provider = 'tigo';
 
 			protected $baseurl;
 			protected $currency;
@@ -77,18 +78,18 @@
 					$grantType = $this->requestValue($request, 'grant_type', 'client_credentials');
 					$payload   = [
 						'grant_type'    => $grantType,
-						'client_id'     => $this->requestValue($request, 'consumerkey', $this->requestValue($request, 'client_id')),
-						'client_secret' => $this->requestValue($request, 'consumersecret', $this->requestValue($request, 'client_secret')),
+						'client_id'     => $this->credentialValue('tigo', $request, 'consumerkey', $this->requestValue($request, 'client_id')),
+						'client_secret' => $this->credentialValue('tigo', $request, 'consumersecret', $this->requestValue($request, 'client_secret')),
 					];
 
 					if ($grantType === 'password')
 						{
-							$payload['username'] = $this->requestValue($request, 'username');
-							$payload['password'] = $this->requestValue($request, 'password');
+							$payload['username'] = $this->credentialValue('tigo', $request, 'username');
+							$payload['password'] = $this->credentialValue('tigo', $request, 'password');
 						}
 
 					$response = Http::asForm()
-					                ->withOptions(['verify' => $this->resourcePath('cacert.pem'), 'http_errors' => false])
+					                ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 					                ->post($this->url($this->requestValue($request, 'token_endpoint', '/oauth/token')), $payload);
 
 					return $response->successful() ? $response->object() : null;
@@ -101,11 +102,15 @@
 
 			public function api($request, $endpoint = null, $method = 'post', ?array $payload = null)
 				{
-					return $this->authorized($request, $method, $endpoint ?: $this->requestValue($request, 'endpoint'), $payload ?: $this->requestData($request));
+					$path = $endpoint ?: $this->requestValue($request, 'endpoint');
+					$this->assertAllowedEndpoint('tigo', $path, true);
+
+					return $this->authorized($request, $method, $path, $payload ?: $this->requestData($request));
 				}
 
 			protected function authorized($request, $method, $endpoint, array $payload = [])
 				{
+					$this->assertAllowedEndpoint('tigo', $endpoint);
 					$token = $this->generate_token($request);
 
 					return $this->jsonRequest($method, $this->url($endpoint), $payload, $token ? $token->access_token : null, [

@@ -2,7 +2,9 @@
 
 namespace Caydeesoft\Payments;
 
+use Caydeesoft\Payments\Http\Middleware\VerifyPaymentCallback;
 use Caydeesoft\Payments\Libs\Payments;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 class PaymentsServiceProvider extends ServiceProvider
@@ -31,6 +33,9 @@ class PaymentsServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $router = $this->app->make(Router::class);
+        $router->aliasMiddleware('payments.callback.verify', VerifyPaymentCallback::class);
+
         if (config('payments.routes.enabled', true)) {
             $this->loadRoutesFrom(__DIR__ . '/routes/payments.php');
         }

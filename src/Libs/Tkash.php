@@ -8,6 +8,7 @@
 	class Tkash implements Paychannels
 		{
 			use Helper;
+			protected $provider = 'tkash';
 
 			protected $link;
 
@@ -31,11 +32,11 @@
 
 			public function generate_token($request)
 				{
-					$credentials = base64_encode($this->requestValue($request, 'consumerkey') . ':' . $this->requestValue($request, 'consumersecret'));
+					$credentials = base64_encode($this->credentialValue('tkash', $request, 'consumerkey') . ':' . $this->credentialValue('tkash', $request, 'consumersecret'));
 
 					return $this->jsonRequest('post', $this->url(TkashParameters::token_link), [
-						'username' => $this->requestValue($request, 'name', $this->requestValue($request, 'username')),
-						'password' => $this->requestValue($request, 'password'),
+						'username' => $this->credentialValue('tkash', $request, 'username', $this->requestValue($request, 'name')),
+						'password' => $this->credentialValue('tkash', $request, 'password'),
 					],                        null, [
 						                          'Authorization' => 'Basic ' . $credentials,
 					                          ]);
@@ -100,6 +101,7 @@
 
 			protected function authorized($request, $method, $endpoint, array $payload = [])
 				{
+					$this->assertAllowedEndpoint('tkash', $endpoint);
 					$token = $this->generate_token($request);
 
 					return $this->jsonRequest($method, $this->url($endpoint), $payload, isset($token->access_token) ? $token->access_token : null);

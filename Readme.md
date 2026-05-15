@@ -98,3 +98,15 @@ Non-M-Pesa callbacks return normalized payloads with provider, event, headers, p
 ## AI Metadata
 
 This package includes `llms.txt` and `mcp.json` for AI-readable package context and MCP-style tool/resource metadata.
+
+## Security
+
+Use environment/config credentials for live traffic and enable callback verification before production:
+
+```env
+PAYMENTS_CALLBACK_VERIFICATION=true
+PAYMENTS_CALLBACK_SECRET=change-me
+PAYMENTS_CALLBACK_ALLOWED_IPS=
+```
+
+Generic `api()` endpoint overrides require provider `allowed_endpoints` config entries. See [Security.md](Security.md) for the production checklist.

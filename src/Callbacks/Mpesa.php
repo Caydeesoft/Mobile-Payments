@@ -2,10 +2,13 @@
 
 	namespace Caydeesoft\Payments\Callbacks;
 
+	use Caydeesoft\Payments\Traits\Helper;
 	use Illuminate\Http\Request;
 
 	class Mpesa implements CallbackInterface
 		{
+			use Helper;
+
 			public function handleRequest($request, $isArray = true)
 				{
 					$rawData = $request->getContent();
@@ -37,11 +40,24 @@
 
 			public function validation(Request $request)
 				{
-					return array_merge($this->c2bPayload($request), [
-						'response' => [
+					$payload   = $this->c2bPayload($request);
+					$validator = config('payments.callbacks.mpesa_validator');
+
+					if ($validator && is_callable($validator))
+						{
+							$response = call_user_func($validator, $payload, $request);
+
+							if ($response)
+								{
+									return array_merge($payload, ['response' => $response]);
+								}
+						}
+
+					return array_merge($payload, [
+						'response' => config('payments.callbacks.mpesa_validation_fallback', [
 							'ResultCode' => '0',
 							'ResultDesc' => 'Accepted',
-						],
+						]),
 					]);
 				}
 
@@ -139,6 +155,26 @@
 						'referenceData'     => $result['ReferenceData'] ?? null,
 						'parameters'        => $parameters,
 					]);
+				}
+
+			public function bill_manager_optin(Request $request)
+				{
+					return $this->genericPayload($request, 'bill-manager-optin');
+				}
+
+			public function bill_manager_invoice(Request $request)
+				{
+					return $this->genericPayload($request, 'bill-manager-invoice');
+				}
+
+			public function bill_manager_payment(Request $request)
+				{
+					return $this->genericPayload($request, 'bill-manager-payment');
+				}
+
+			public function ratiba(Request $request)
+				{
+					return $this->genericPayload($request, 'ratiba');
 				}
 
 			public function processB2BRequestCallback(Request $request)
@@ -239,5 +275,15 @@
 			protected function parameterByIndex(array $result, $index)
 				{
 					return $result['ResultParameters']['ResultParameter'][$index]['Value'] ?? null;
+				}
+
+			protected function genericPayload(Request $request, $event)
+				{
+					return [
+						'event'   => $event,
+						'headers' => $this->redactHeaders($request->headers->all()),
+						'payload' => $this->redactArray($this->handleRequest($request, true)),
+						'raw'     => $request->getContent(),
+					];
 				}
 		}

@@ -10,7 +10,7 @@
 	class AirtelMoney implements Paychannels
 		{
 			use Helper;
-			protected $provider = 'airtel';
+			
 
 			protected $baseurl;
 			protected $country;
@@ -18,6 +18,7 @@
 
 			public function __construct($env = 'production')
 				{
+					$this->provider = 'airtel';
 					$this->baseurl = rtrim($this->configValue(
 						$env === 'production' ? 'payments.channels.airtel.production_url' : 'payments.channels.airtel.sandbox_url',
 						$env === 'production' ? 'https://openapi.airtel.africa' : 'https://openapiuat.airtel.africa'

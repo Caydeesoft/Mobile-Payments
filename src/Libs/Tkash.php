@@ -8,12 +8,13 @@
 	class Tkash implements Paychannels
 		{
 			use Helper;
-			protected $provider = 'tkash';
+			
 
 			protected $link;
 
 			public function __construct($env = 'production')
 				{
+					$this->provider = 'tkash';
 					$this->link = rtrim($this->configValue(
 						$env === 'production' ? 'payments.channels.tkash.production_url' : 'payments.channels.tkash.sandbox_url',
 						$env === 'production' ? 'https://production.gw.mfs-tkl.com' : 'https://staging.gw.mfs-tkl.com'

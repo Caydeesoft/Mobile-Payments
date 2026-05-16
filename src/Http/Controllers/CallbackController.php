@@ -3,7 +3,6 @@
 	namespace Caydeesoft\Payments\Http\Controllers;
 
 	use Caydeesoft\Payments\Callbacks\Airtel;
-	use Caydeesoft\Payments\Callbacks\CallbackInterface;
 	use Caydeesoft\Payments\Callbacks\EazzyPay;
 	use Caydeesoft\Payments\Callbacks\Mpesa;
 	use Caydeesoft\Payments\Callbacks\Mtn;

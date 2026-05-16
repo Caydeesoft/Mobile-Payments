@@ -36,19 +36,41 @@
       "description": "Describe or invoke a payment operation through the Laravel Payments facade. Live invocation should require explicit user approval and valid provider credentials.",
       "inputSchema": {
         "type": "object",
-        "required": ["channel", "operation", "environment"],
+        "required": [
+          "channel",
+          "operation",
+          "environment"
+        ],
         "properties": {
           "channel": {
             "type": "string",
-            "enum": ["mpesa", "airtel", "tkash", "eazzy", "mtn", "tigo"]
+            "enum": [
+              "mpesa",
+              "airtel",
+              "tkash",
+              "eazzy",
+              "mtn",
+              "tigo"
+            ]
           },
           "operation": {
             "type": "string",
-            "enum": ["generate_token", "stkpush", "registerURL", "balance", "refund", "b2c", "b2b"]
+            "enum": [
+              "generate_token",
+              "stkpush",
+              "registerURL",
+              "balance",
+              "refund",
+              "b2c",
+              "b2b"
+            ]
           },
           "environment": {
             "type": "string",
-            "enum": ["sandbox", "production"]
+            "enum": [
+              "sandbox",
+              "production"
+            ]
           },
           "payload": {
             "type": "object",
@@ -59,10 +81,18 @@
       "outputSchema": {
         "type": "object",
         "properties": {
-          "provider": {"type": "string"},
-          "operation": {"type": "string"},
-          "accepted": {"type": "boolean"},
-          "data": {"type": "object"}
+          "provider": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object"
+          }
         }
       }
     },
@@ -71,15 +101,36 @@
       "description": "Normalize incoming callback payloads for supported providers and events without assuming undocumented provider schemas.",
       "inputSchema": {
         "type": "object",
-        "required": ["provider", "event", "payload"],
+        "required": [
+          "provider",
+          "event",
+          "payload"
+        ],
         "properties": {
           "provider": {
             "type": "string",
-            "enum": ["mpesa", "airtel", "tkash", "eazzy", "mtn", "tigo"]
+            "enum": [
+              "mpesa",
+              "airtel",
+              "tkash",
+              "eazzy",
+              "mtn",
+              "tigo"
+            ]
           },
           "event": {
             "type": "string",
-            "enum": ["b2b", "b2c", "transaction-status", "stk-query", "stk", "reversal", "account-balance", "c2b-confirmation", "c2b-validation"]
+            "enum": [
+              "b2b",
+              "b2c",
+              "transaction-status",
+              "stk-query",
+              "stk",
+              "reversal",
+              "account-balance",
+              "c2b-confirmation",
+              "c2b-validation"
+            ]
           },
           "payload": {
             "type": "object"
@@ -89,10 +140,18 @@
       "outputSchema": {
         "type": "object",
         "properties": {
-          "accepted": {"type": "boolean"},
-          "provider": {"type": "string"},
-          "event": {"type": "string"},
-          "data": {"type": "object"}
+          "accepted": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
         }
       }
     }

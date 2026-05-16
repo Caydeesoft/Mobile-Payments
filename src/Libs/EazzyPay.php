@@ -9,12 +9,13 @@
 	class EazzyPay extends EazzyPayParameters implements Paychannels
 		{
 			use Helper;
-			protected $provider = 'eazzy';
+			
 
 			protected $link;
 
 			public function __construct($env = 'production')
 				{
+					$this->provider = 'eazzy';
 					$this->link = rtrim($this->configValue(
 						$env === 'production' ? 'payments.channels.eazzy.production_url' : 'payments.channels.eazzy.sandbox_url',
 						'https://api.equitybankgroup.com'

@@ -1,24 +1,25 @@
 <?php
-
+	
 	namespace Caydeesoft\Payments\Libs;
-
+	
 	use Caydeesoft\Payments\Constants\MpesaParameters;
 	use Caydeesoft\Payments\Traits\Helper;
 	use Illuminate\Support\Facades\Http;
 	use Illuminate\Support\Facades\Log;
 	use Symfony\Component\HttpKernel\Exception\HttpException;
-
+	
 	class Mpesa extends MpesaParameters implements Paychannels
-	{
-		use Helper;
-		protected $provider = 'mpesa';
-
+		{
+			use Helper;
+			
+			
 			public $link, $cert, $timestamp;
-
+			
 			public function __construct($env = 'production')
 				{
+					$this->provider  = 'mpesa';
 					$this->timestamp = date('YmdHis');
-
+					
 					if ($env == 'production')
 						{
 							$this->link = rtrim($this->configValue('payments.channels.mpesa.production_url', 'https://api.safaricom.co.ke'), '/');
@@ -30,7 +31,7 @@
 							$this->cert = $this->resourcePath('Mpesa_public_sandbox_cert.cer');
 						}
 				}
-
+			
 			public function generate_token($request)
 				{
 					try
@@ -39,40 +40,40 @@
 							$data        = Http::withHeaders(['Content-Type' => 'application/json', 'Authorization' => 'Basic ' . $credentials])
 							                   ->withOptions(['verify' => $this->caBundle(), 'http_errors' => false])
 							                   ->get($this->link . self::token_link);
-
+							
 							if ($data->successful())
 								{
 									return $data->object();
 								}
-
+							
 						}
 					catch (HttpException $e)
 						{
 							Log::error($e->getMessage());
 						}
 				}
-
+			
 			public function api($request, $endpoint = null, $method = 'post', ?array $payload = null)
-					{
-						$path = $endpoint ?: $this->requestValue($request, 'endpoint');
-						$this->assertAllowedEndpoint('mpesa', $path, true);
-						$data = $payload ?: $this->requestValue($request, 'payload', $this->requestData($request));
-
+				{
+					$path = $endpoint ?: $this->requestValue($request, 'endpoint');
+					$this->assertAllowedEndpoint('mpesa', $path, true);
+					$data = $payload ?: $this->requestValue($request, 'payload', $this->requestData($request));
+					
 					return $this->invoke_server($this->link . $path, $data, $this->accessToken($request), $method);
 				}
-
+			
 			protected function accessToken($request)
 				{
 					$token = $this->generate_token($request);
-
+					
 					return isset($token->access_token) ? $token->access_token : null;
 				}
-
+			
 			protected function endpoint($key, $fallback)
 				{
 					return $this->configValue('payments.channels.mpesa.endpoints.' . $key, $fallback);
 				}
-
+		
 		/**
 		 * @param $plaintext
 		 * @return string
@@ -87,7 +88,7 @@
 					openssl_public_encrypt($plaintext, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING);
 					return base64_encode($encrypted);
 				}
-
+		
 		/**
 		 * @param $type
 		 * @return int
@@ -111,7 +112,7 @@
 						}
 					return $x;
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -124,9 +125,9 @@
 							$businessShortcode = $this->credentialValue('mpesa', $request, 'shortcode', $request->shortcode);
 							$passkey           = $this->credentialValue('mpesa', $request, 'passkey', $request->passkey);
 							$password          = base64_encode($businessShortcode . $passkey . $this->timestamp);
-							$type      = ($request->type == 'TILL') ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
-							$shortcode = ($request->type == 'TILL') ? $request->cshortcode : $businessShortcode;
-							$data      = [
+							$type              = ($request->type == 'TILL') ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline';
+							$shortcode         = ($request->type == 'TILL') ? $request->cshortcode : $businessShortcode;
+							$data              = [
 								'BusinessShortCode' => $businessShortcode,
 								'Password'          => $password,
 								'Timestamp'         => $this->timestamp,
@@ -139,19 +140,19 @@
 								'AccountReference'  => $request->ref,
 								'TransactionDesc'   => $request->desc
 							];
-							$token     = $this->generate_token($request);
+							$token             = $this->generate_token($request);
 							if (property_exists($token, 'access_token'))
 								{
 									return $this->invoke_server($this->link . self::checkout_processlink, $data, $token->access_token);
 								}
-
+							
 						}
 					catch (HttpException $e)
 						{
 							Log::error($e->getMessage());
 						}
 				}
-
+		
 		/**
 		 * @param $request
 		 *
@@ -164,7 +165,7 @@
 							$businessShortcode = $this->credentialValue('mpesa', $request, 'shortcode', $request->shortcode);
 							$passkey           = $this->credentialValue('mpesa', $request, 'passkey', $request->passkey);
 							$password          = base64_encode($businessShortcode . $passkey . $this->timestamp);
-							$data     = [
+							$data              = [
 								'BusinessShortCode' => $businessShortcode,
 								'Password'          => $password,
 								'Timestamp'         => $this->timestamp,
@@ -176,9 +177,9 @@
 						{
 							Log::error($e->getMessage());
 						}
-
+					
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -207,7 +208,7 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -226,7 +227,7 @@
 								'QueueTimeOutURL'    => self::accountbalcallback(),
 								'ResultURL'          => self::accountbalcallback()
 							];
-
+							
 							return $this->invoke_server($this->link . self::balance_link, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -234,7 +235,7 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -249,7 +250,7 @@
 								'ResponseType '   => 'Canceled',
 								'ShortCode'       => $request->shortcode
 							];
-
+							
 							return $this->invoke_server($this->link . self::c2b_regiterUrl, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -257,7 +258,7 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -286,9 +287,9 @@
 						{
 							Log::error($e->getMessage());
 						}
-
+					
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -315,9 +316,9 @@
 						{
 							Log::error($e->getMessage());
 						}
-
+					
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -339,17 +340,17 @@
 								'Occasion'               => $request->ocassion,
 								'OriginalConversationID' => $request->conversionID
 							];
-
-
+							
+							
 							return $this->invoke_server($this->link . self::transtat_link, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
 						{
 							Log::error($e->getMessage());
 						}
-
+					
 				}
-
+		
 		/**
 		 * @param $request
 		 * @return array|object|void
@@ -368,8 +369,8 @@
 								"QRFormat"     => $request->qrformat, //1: image, 2: QR String, 3: Binary, 4: PDF
 								"QRType"       => $request->qrtype // S : Static, D : Dynamic
 							];
-
-
+							
+							
 							return $this->invoke_server($this->link . self::qrcode, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -377,7 +378,7 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+			
 			public function c2bSimulate($request)
 				{
 					$data = [
@@ -387,10 +388,10 @@
 						'Msisdn'        => $this->requestValue($request, 'msisdn'),
 						'BillRefNumber' => $this->requestValue($request, 'ref', $this->requestValue($request, 'BillRefNumber')),
 					];
-
+					
 					return $this->invoke_server($this->link . self::c2b_simulate, $data, $this->accessToken($request));
 				}
-
+			
 			public function taxRemittance($request)
 				{
 					$data = [
@@ -407,47 +408,47 @@
 						'QueueTimeOutURL'        => self::b2bcallback(),
 						'ResultURL'              => self::b2bcallback(),
 					];
-
+					
 					return $this->invoke_server($this->link . self::tax_remittance, $data, $this->accessToken($request));
 				}
-
+			
 			public function ratibaCreate($request)
 				{
 					return $this->ratiba($request, 'ratiba_create', self::ratiba_create);
 				}
-
+			
 			public function ratibaUpdate($request)
 				{
 					return $this->ratiba($request, 'ratiba_update', self::ratiba_update);
 				}
-
+			
 			public function ratibaCancel($request)
 				{
 					return $this->ratiba($request, 'ratiba_cancel', self::ratiba_cancel);
 				}
-
+			
 			public function ratibaQuery($request)
 				{
 					return $this->ratiba($request, 'ratiba_query', self::ratiba_query);
 				}
-
+			
 			public function ratibaCallback($request)
 				{
 					return $this->ratiba($request, 'ratiba_callback', self::ratiba_callback);
 				}
-
+			
 			protected function ratiba($request, $endpointKey, $fallbackEndpoint)
 				{
 					$payload = $this->requestValue($request, 'payload', $this->requestData($request));
-
+					
 					if (!isset($payload['CallBackURL']) && !isset($payload['CallbackURL']) && !isset($payload['callbackUrl']))
 						{
 							$payload['CallBackURL'] = self::ratibaURL();
 						}
-
+					
 					return $this->invoke_server($this->link . $this->endpoint($endpointKey, $fallbackEndpoint), $payload, $this->accessToken($request));
 				}
-
+			
 			public function billManagerOptin($request, $state = 0)
 				{
 					try
@@ -461,7 +462,7 @@
 								"callbackUrl"     => self::billManagerOptinURL()
 							];
 							$link = ($state == 0) ? self::billMOptinLink : self::billMChangeOptinLink;
-
+							
 							return $this->invoke_server($this->link . $link, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -469,12 +470,12 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+			
 			public function billManagerChangeOptin($request)
 				{
 					return $this->billManagerOptin($request, 1);
 				}
-
+			
 			public function billManagerSingleInvoice($request)
 				{
 					try
@@ -490,8 +491,8 @@
 								"amount"            => $request->amount,
 								"invoiceItems"      => ["itemName" => $request->item_name, "amount" => $request->item_amount]
 							];
-
-
+							
+							
 							return $this->invoke_server($this->link . self::billMSingleInvoice, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -499,7 +500,7 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+			
 			public function billManagerBulkInvoice($request)
 				{
 					$data = $this->requestValue($request, 'payload', [
@@ -507,15 +508,15 @@
 						'shortcode'   => $this->requestValue($request, 'shortcode'),
 						'callbackUrl' => $this->requestValue($request, 'callbackUrl', self::billManagerInvoiceURL()),
 					]);
-
+					
 					return $this->invoke_server($this->link . self::billMBulkInvoice, $data, $this->accessToken($request));
 				}
-
+			
 			public function billManagerCancelSingleInvoice($request, $data)
 				{
 					try
 						{
-
+							
 							return $this->invoke_server($this->link . self::billMCancelSingleIn, $data, $this->generate_token($request)->access_token);
 						}
 					catch (HttpException $e)
@@ -523,32 +524,32 @@
 							Log::error($e->getMessage());
 						}
 				}
-
+			
 			public function billManagerCancelBulkInvoice($request, $data = null)
 				{
 					$payload = $data ?: $this->requestValue($request, 'payload', $this->requestData($request));
-
+					
 					return $this->invoke_server($this->link . self::billMCancelBulkIn, $payload, $this->accessToken($request));
 				}
-
+			
 			public function billManagerInvoiceQuery($request)
 				{
 					$payload = $this->requestValue($request, 'payload', $this->requestData($request));
-
+					
 					return $this->invoke_server($this->link . self::billMInvoiceQuery, $payload, $this->accessToken($request));
 				}
-
+			
 			public function billManagerPaymentQuery($request)
 				{
 					$payload = $this->requestValue($request, 'payload', $this->requestData($request));
-
+					
 					return $this->invoke_server($this->link . self::billMPaymentQuery, $payload, $this->accessToken($request));
 				}
-
+			
 			public function billManagerReconciliation($request)
 				{
 					$payload = $this->requestValue($request, 'payload', $this->requestData($request));
-
+					
 					return $this->invoke_server($this->link . self::billMReconciliation, $payload, $this->accessToken($request));
 				}
 		}

@@ -8,7 +8,7 @@
 	class Mtn implements Paychannels
 		{
 			use Helper;
-			protected $provider = 'mtn';
+			
 
 			protected $baseurl;
 			protected $targetEnvironment;
@@ -16,6 +16,7 @@
 
 			public function __construct($env = 'production')
 				{
+					$this->provider = 'mtn';
 					$this->baseurl           = rtrim($this->configValue(
 						$env === 'production' ? 'payments.channels.mtn.production_url' : 'payments.channels.mtn.sandbox_url',
 						$env === 'production' ? 'https://momodeveloper.mtn.com' : 'https://sandbox.momodeveloper.mtn.com'
